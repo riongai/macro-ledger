@@ -1,0 +1,1852 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Daily macro and training ledger.">
+<meta name="theme-color" content="#E9ECEC" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E1316" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Macros">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<title>Macro Ledger</title>
+<style>
+:root{
+  --ground:#E9ECEC; --surface:#FFFFFF; --surface-2:#F2F5F5; --inset:#E4E9E9;
+  --ink:#10171C; --ink-2:#4A5960; --ink-3:#7C8B92;
+  --rule:#CBD3D5; --rule-2:#DDE3E4;
+  --accent:#1F3FD0; --accent-ink:#1F3FD0; --accent-soft:#E3E8FB; --on-accent:#FFFFFF;
+  --good:#15704E; --good-soft:#DDEFE7;
+  --warn:#8F5D06; --warn-soft:#F6EAD3;
+  --crit:#B02E20; --crit-soft:#F8E2DF;
+  --shadow:0 1px 2px rgba(16,23,28,.06), 0 8px 24px -16px rgba(16,23,28,.28);
+  --font-ui:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,sans-serif;
+  --font-num:ui-monospace,"SF Mono",SFMono-Regular,Menlo,"Cascadia Mono",monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0E1316; --surface:#161D21; --surface-2:#1C2529; --inset:#101619;
+    --ink:#E7ECEE; --ink-2:#93A3AA; --ink-3:#6C7C84;
+    --rule:#2A363C; --rule-2:#222C31;
+    --accent:#7F95FF; --accent-ink:#9FAFFF; --accent-soft:#1A2348; --on-accent:#0E1316;
+    --good:#4CC48F; --good-soft:#122E25;
+    --warn:#E3A93F; --warn-soft:#33270F;
+    --crit:#FF8271; --crit-soft:#3A1D1A;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0E1316; --surface:#161D21; --surface-2:#1C2529; --inset:#101619;
+  --ink:#E7ECEE; --ink-2:#93A3AA; --ink-3:#6C7C84;
+  --rule:#2A363C; --rule-2:#222C31;
+  --accent:#7F95FF; --accent-ink:#9FAFFF; --accent-soft:#1A2348; --on-accent:#0E1316;
+  --good:#4CC48F; --good-soft:#122E25;
+  --warn:#E3A93F; --warn-soft:#33270F;
+  --crit:#FF8271; --crit-soft:#3A1D1A;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.8);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:var(--font-ui); font-size:15px; line-height:1.45;
+  -webkit-text-size-adjust:100%;
+}
+.wrap{max-width:560px; margin:0 auto; padding:18px 14px 72px; display:flex; flex-direction:column; gap:14px}
+
+/* ---------- shared ---------- */
+.card{background:var(--surface); border:1px solid var(--rule); border-radius:var(--r); box-shadow:var(--shadow)}
+.pad{padding:14px}
+.lab{
+  font-size:10.5px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--ink-3);
+}
+.num{font-family:var(--font-num); font-variant-numeric:tabular-nums; font-feature-settings:"tnum" 1}
+.row{display:flex; align-items:center; gap:10px}
+.between{justify-content:space-between}
+.grow{flex:1; min-width:0}
+h2{margin:0; font-size:13px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-2)}
+button{font:inherit; color:inherit; cursor:pointer}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:6px}
+
+.btn{
+  background:var(--surface-2); border:1px solid var(--rule); border-radius:8px;
+  padding:8px 12px; font-size:13.5px; font-weight:600; color:var(--ink);
+  transition:background .12s ease, border-color .12s ease;
+}
+.btn:hover{background:var(--inset)}
+.btn.primary{background:var(--accent); border-color:var(--accent); color:var(--on-accent); font-weight:700}
+.btn.primary:hover{filter:brightness(1.06)}
+.btn.ghost{background:transparent; border-color:transparent; color:var(--ink-2); padding:6px 8px}
+.btn.ghost:hover{background:var(--surface-2); color:var(--ink)}
+.btn.sm{padding:5px 9px; font-size:12.5px}
+
+input,select,textarea{
+  font:inherit; color:var(--ink); background:var(--surface); width:100%;
+  border:1px solid var(--rule); border-radius:8px; padding:8px 10px;
+}
+input[type=number]{font-family:var(--font-num); font-variant-numeric:tabular-nums}
+textarea{font-family:var(--font-num); font-size:12px; line-height:1.5; resize:vertical}
+label.field{display:flex; flex-direction:column; gap:5px}
+
+/* ---------- masthead ---------- */
+.mast{display:flex; align-items:flex-end; justify-content:space-between; gap:12px; padding:2px 2px 0}
+.mast h1{
+  margin:0; font-size:19px; font-weight:800; letter-spacing:-.015em; line-height:1.1;
+}
+.mast .sub{font-size:11.5px; color:var(--ink-3); margin-top:2px}
+.rule-heavy{height:3px; background:var(--ink); border-radius:2px; opacity:.9}
+
+/* ---------- date bar ---------- */
+.datebar{display:flex; align-items:center; gap:6px}
+.datebar .d{
+  flex:1; text-align:center; font-weight:700; font-size:14.5px; letter-spacing:.01em;
+}
+.datebar .d small{display:block; font-weight:600; font-size:11px; color:var(--ink-3); letter-spacing:.06em; text-transform:uppercase}
+.nav{
+  width:38px; height:38px; display:grid; place-items:center; border-radius:8px;
+  background:var(--surface-2); border:1px solid var(--rule); font-size:16px; line-height:1;
+}
+.nav:hover{background:var(--inset)}
+
+/* ---------- headline ---------- */
+.headline{padding:16px 14px 14px; display:flex; flex-direction:column; gap:2px; border-radius:var(--r); position:relative; overflow:hidden}
+.headline .big{
+  font-family:var(--font-num); font-variant-numeric:tabular-nums;
+  font-size:44px; font-weight:700; letter-spacing:-.03em; line-height:1;
+}
+.headline .cap{font-size:12.5px; color:var(--ink-2); font-weight:600}
+.headline[data-state="over"]{background:var(--crit-soft); border-color:color-mix(in srgb, var(--crit) 35%, transparent)}
+.headline[data-state="over"] .big{color:var(--crit)}
+.headline[data-state="close"]{background:var(--good-soft); border-color:color-mix(in srgb, var(--good) 35%, transparent)}
+.headline[data-state="close"] .big{color:var(--good)}
+.headline[data-state="under"] .big{color:var(--ink)}
+
+/* ---------- gauges ---------- */
+.gauges{display:flex; flex-direction:column; gap:13px}
+.gauge{display:flex; flex-direction:column; gap:5px}
+.gauge .top{display:flex; align-items:baseline; justify-content:space-between; gap:8px}
+.gauge .name{font-size:12px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-2)}
+.gauge .fig{font-family:var(--font-num); font-variant-numeric:tabular-nums; font-size:14px; font-weight:600}
+.gauge .fig .of{color:var(--ink-3); font-weight:400}
+.track{
+  position:relative; height:12px; border-radius:3px; background:var(--inset);
+  border:1px solid var(--rule-2); overflow:hidden;
+}
+.track::after{ /* quarter ticks */
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:repeating-linear-gradient(90deg, transparent 0, transparent calc(25% - 1px), var(--rule) calc(25% - 1px), var(--rule) 25%);
+  opacity:.85;
+}
+.fill{
+  position:absolute; inset:0 auto 0 0; width:var(--pct,0%);
+  background:var(--c,var(--accent)); border-radius:2px 0 0 2px;
+  transition:width .28s cubic-bezier(.4,0,.2,1);
+}
+.gauge[data-state="over"] .fill{
+  background-image:repeating-linear-gradient(135deg, rgba(255,255,255,.34) 0 4px, transparent 4px 9px);
+}
+.gauge .foot{font-size:11.5px; color:var(--ink-3); display:flex; justify-content:space-between; gap:8px}
+.gauge .foot b{font-family:var(--font-num); font-weight:600; color:var(--ink-2)}
+
+/* ---------- inline notes ---------- */
+.note{font-size:12px; line-height:1.5; color:var(--ink-2); background:var(--surface-2); border-left:3px solid var(--accent); padding:8px 10px; border-radius:0 6px 6px 0}
+.note.warnish{border-left-color:var(--warn)}
+
+/* ---------- add food ---------- */
+.tabs{display:flex; gap:4px; padding:3px; background:var(--surface-2); border:1px solid var(--rule); border-radius:9px}
+.tabs button{flex:1; border:0; background:transparent; padding:7px; border-radius:6px; font-size:13px; font-weight:600; color:var(--ink-2)}
+.tabs button[aria-selected="true"]{background:var(--surface); color:var(--ink); box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.results{display:flex; flex-direction:column; max-height:300px; overflow-y:auto; overscroll-behavior:contain; border:1px solid var(--rule); border-radius:8px}
+.results button{
+  display:flex; justify-content:space-between; align-items:center; gap:10px; text-align:left;
+  border:0; border-bottom:1px solid var(--rule-2); background:var(--surface); padding:9px 10px; font-size:13.5px;
+}
+.results button:last-child{border-bottom:0}
+.results button:hover{background:var(--surface-2)}
+.results .nm{display:block; line-height:1.25}
+.results .cui{display:block; font-size:9.5px; letter-spacing:.08em; text-transform:uppercase; font-weight:700; color:var(--ink-3); margin-top:2px}
+.results .k{font-family:var(--font-num); font-size:11.5px; color:var(--ink-3); white-space:nowrap; text-align:right}
+.results .none{padding:12px; font-size:13px; color:var(--ink-3)}
+.chips{display:flex; flex-wrap:wrap; gap:6px}
+.chip{
+  border:1px solid var(--rule); background:var(--surface-2); border-radius:999px;
+  padding:5px 11px; font-size:12.5px; font-weight:600; color:var(--ink-2);
+}
+.chip:hover{background:var(--accent-soft); border-color:var(--accent); color:var(--accent-ink)}
+.chip[aria-pressed="true"]{background:var(--accent); border-color:var(--accent); color:var(--on-accent)}
+.chips.scroller{flex-wrap:nowrap; overflow-x:auto; overscroll-behavior-x:contain; scrollbar-width:none; padding-bottom:1px}
+.chips.scroller::-webkit-scrollbar{display:none}
+.chips.scroller .chip{flex:0 0 auto}
+.chips .sep{flex:0 0 auto; width:1px; align-self:stretch; background:var(--rule); margin:3px 4px}
+.picked{background:var(--surface-2); border:1px solid var(--rule); border-radius:8px; padding:11px; display:flex; flex-direction:column; gap:9px}
+.preview{display:grid; grid-template-columns:repeat(4,1fr); gap:6px}
+.preview div{background:var(--surface); border:1px solid var(--rule-2); border-radius:6px; padding:6px 4px; text-align:center}
+.preview .v{font-family:var(--font-num); font-variant-numeric:tabular-nums; font-size:14px; font-weight:700}
+.preview .l{font-size:9.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); font-weight:700}
+.grid2{display:grid; grid-template-columns:1fr 1fr; gap:9px}
+.grid4{display:grid; grid-template-columns:repeat(4,1fr); gap:7px}
+
+/* ---------- log ---------- */
+.log{display:flex; flex-direction:column}
+.entry{display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--rule-2)}
+.entry:last-child{border-bottom:0}
+.entry .nm{font-size:14px; font-weight:600; line-height:1.25}
+.entry .qt{font-size:11.5px; color:var(--ink-3); font-family:var(--font-num)}
+.entry .mac{font-family:var(--font-num); font-variant-numeric:tabular-nums; font-size:11.5px; color:var(--ink-2); white-space:nowrap; text-align:right}
+.entry .mac b{display:block; font-size:14px; color:var(--ink); font-weight:700}
+.del{border:0; background:transparent; color:var(--ink-3); font-size:17px; line-height:1; padding:4px 2px; border-radius:6px}
+.del:hover{color:var(--crit); background:var(--crit-soft)}
+.empty{color:var(--ink-3); font-size:13px; padding:14px 0; text-align:center}
+.totals{display:flex; justify-content:space-between; gap:8px; padding-top:10px; margin-top:2px; border-top:2px solid var(--ink)}
+.totals .t{display:flex; flex-direction:column; align-items:center; gap:1px}
+.totals .t b{font-family:var(--font-num); font-variant-numeric:tabular-nums; font-size:15px}
+
+/* ---------- week ---------- */
+.week{display:grid; grid-template-columns:repeat(7,1fr); gap:6px; align-items:end}
+.day{display:flex; flex-direction:column; align-items:center; gap:5px}
+.bar{width:100%; height:56px; background:var(--inset); border-radius:3px; position:relative; overflow:hidden; border:1px solid var(--rule-2)}
+.bar i{position:absolute; left:0; right:0; bottom:0; height:var(--h,0%); background:var(--c,var(--accent)); display:block}
+.bar u{position:absolute; left:0; right:0; bottom:var(--target,100%); height:1px; background:var(--ink-2); opacity:.55}
+.day .dl{font-size:9.5px; letter-spacing:.05em; text-transform:uppercase; color:var(--ink-3); font-weight:700}
+.day .dv{font-family:var(--font-num); font-size:10.5px; color:var(--ink-2)}
+.day[data-today="1"] .dl{color:var(--accent-ink)}
+
+/* ---------- settings ---------- */
+details{border:1px solid var(--rule); border-radius:var(--r); background:var(--surface); box-shadow:var(--shadow)}
+summary{
+  padding:13px 14px; cursor:pointer; font-size:13px; font-weight:800; letter-spacing:.06em;
+  text-transform:uppercase; color:var(--ink-2); list-style:none; display:flex; justify-content:space-between; align-items:center;
+}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+"; font-family:var(--font-num); font-size:16px; color:var(--ink-3)}
+details[open] summary::after{content:"–"}
+details[open] summary{border-bottom:1px solid var(--rule-2)}
+.dbody{padding:14px; display:flex; flex-direction:column; gap:12px}
+.readout{display:flex; flex-wrap:wrap; gap:8px}
+.readout div{flex:1; min-width:88px; background:var(--surface-2); border:1px solid var(--rule-2); border-radius:7px; padding:8px 9px}
+.readout b{display:block; font-family:var(--font-num); font-variant-numeric:tabular-nums; font-size:16px; font-weight:700; letter-spacing:-.01em}
+.foot{font-size:11.5px; color:var(--ink-3); line-height:1.55; text-align:center; padding:0 4px}
+.hidden{display:none !important}
+@media (prefers-reduced-motion: reduce){*{transition:none !important; animation:none !important}}
+@media (max-width:400px){
+  .headline .big{font-size:38px}
+  .grid4{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+<style>
+/* home-screen standalone: keep content clear of the notch and home indicator */
+.wrap{
+  padding-top: calc(18px + env(safe-area-inset-top));
+  padding-bottom: calc(72px + env(safe-area-inset-bottom));
+  padding-left: calc(14px + env(safe-area-inset-left));
+  padding-right: calc(14px + env(safe-area-inset-right));
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header class="mast">
+    <div>
+      <h1>Macro Ledger</h1>
+      <div class="sub" id="profileLine"></div>
+    </div>
+    <button class="btn ghost sm" id="themeBtn" title="Switch theme">◐</button>
+  </header>
+  <div class="rule-heavy"></div>
+
+  <div class="card pad hidden" id="noStore" style="border-color:var(--crit)">
+    <div class="lab" style="color:var(--crit)" id="noStoreTitle">Saving is blocked here</div>
+    <div style="font-size:13px;line-height:1.5;margin-top:5px" id="noStoreBody"></div>
+  </div>
+
+  <div class="card pad hidden" id="setupPrompt" style="border-color:var(--accent);display:flex;flex-direction:column;align-items:flex-start;gap:5px">
+    <div class="lab" style="color:var(--accent-ink)">Start here</div>
+    <div style="font-size:13px;line-height:1.5">Every target below is a placeholder until you enter your own weight, height, age and goal. Nothing is sent anywhere — your numbers stay in this browser.</div>
+    <button class="btn primary sm" id="setupBtn" style="margin-top:6px">Set my stats</button>
+  </div>
+
+  <div class="datebar">
+    <button class="nav" id="prevDay" aria-label="Previous day">‹</button>
+    <div class="d" id="dateLabel"></div>
+    <button class="nav" id="nextDay" aria-label="Next day">›</button>
+  </div>
+
+  <section class="card headline" id="headline">
+    <div class="lab" id="headLab">Calories remaining</div>
+    <div class="big" id="headBig">0</div>
+    <div class="cap" id="headCap"></div>
+  </section>
+
+  <section class="card pad gauges" id="gauges"></section>
+
+  <section class="card pad" style="display:flex;flex-direction:column;gap:11px">
+    <div class="row between"><h2>Log food</h2></div>
+    <div class="tabs" role="tablist">
+      <button role="tab" id="tabLib" aria-selected="true">Search foods</button>
+      <button role="tab" id="tabCustom" aria-selected="false">Enter manually</button>
+    </div>
+
+    <div id="paneLib" style="display:flex;flex-direction:column;gap:10px">
+      <input type="search" id="search" placeholder="Search pho, katsu, dumplings, oats…" autocomplete="off">
+      <div id="recentWrap" style="display:flex;flex-direction:column;gap:7px">
+        <div class="lab">Recent</div>
+        <div class="chips" id="recent"></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:7px">
+        <div class="lab">Browse — kitchens · takeaway &amp; drinks · ingredients</div>
+        <div class="chips scroller" id="cuisines"></div>
+      </div>
+      <div id="catNote"></div>
+      <div class="results" id="results"></div>
+      <div class="picked hidden" id="picked"></div>
+    </div>
+
+    <div id="paneCustom" class="hidden" style="display:flex;flex-direction:column;gap:10px">
+      <label class="field"><span class="lab">What was it</span>
+        <input id="cName" placeholder="e.g. Thai green curry, takeaway"></label>
+      <div class="grid4">
+        <label class="field"><span class="lab">Kcal</span><input id="cKcal" type="number" inputmode="numeric" min="0"></label>
+        <label class="field"><span class="lab">Protein</span><input id="cP" type="number" inputmode="decimal" min="0"></label>
+        <label class="field"><span class="lab">Carbs</span><input id="cC" type="number" inputmode="decimal" min="0"></label>
+        <label class="field"><span class="lab">Fat</span><input id="cF" type="number" inputmode="decimal" min="0"></label>
+      </div>
+      <label class="row" style="gap:8px;font-size:13px;color:var(--ink-2)">
+        <input type="checkbox" id="cSave" style="width:auto"> Save to my foods for next time</label>
+      <button class="btn primary" id="cAdd">Add to log</button>
+      <div class="note">Leave kcal blank and it fills itself in from the macros (4/4/9).</div>
+    </div>
+  </section>
+
+  <section class="card pad" style="display:flex;flex-direction:column;gap:8px">
+    <div class="row between"><h2>Today's log</h2><span class="lab" id="logCount"></span></div>
+    <div class="log" id="log"></div>
+    <div class="totals" id="totals"></div>
+    <div id="unmacroed" class="hidden"></div>
+  </section>
+
+  <section class="card pad" style="display:flex;flex-direction:column;gap:11px">
+    <div class="row between"><h2>Training &amp; activity</h2><span class="lab" id="exSub"></span></div>
+
+    <div class="tabs" role="tablist">
+      <button role="tab" id="tabExLib" aria-selected="true">Pick an exercise</button>
+      <button role="tab" id="tabExCustom" aria-selected="false">Custom / circuit</button>
+    </div>
+
+    <div id="paneExLib" style="display:flex;flex-direction:column;gap:10px">
+      <div id="exRecentWrap" style="display:flex;flex-direction:column;gap:7px">
+        <div class="lab">Recent</div>
+        <div class="chips" id="exRecent"></div>
+      </div>
+      <div class="chips scroller" id="exGroups"></div>
+      <div class="results" id="exResults"></div>
+      <div class="picked hidden" id="exPicked"></div>
+    </div>
+
+    <div id="paneExCustom" class="hidden" style="display:flex;flex-direction:column;gap:10px">
+      <label class="field"><span class="lab">What did you do</span>
+        <input id="xName" placeholder="e.g. Chest and back circuit, 5 rounds"></label>
+      <div class="grid2">
+        <label class="field"><span class="lab">Minutes</span>
+          <input id="xMins" type="number" inputmode="numeric" min="1" placeholder="45"></label>
+        <label class="field"><span class="lab">How hard</span>
+          <select id="xMet"></select></label>
+      </div>
+      <label class="field"><span class="lab">Or enter calories directly</span>
+        <input id="xKcal" type="number" inputmode="numeric" min="0" placeholder="from your watch or the machine"></label>
+      <label class="row" style="gap:8px;font-size:13px;color:var(--ink-2)">
+        <input type="checkbox" id="xSave" style="width:auto"> Save to my exercises</label>
+      <button class="btn primary" id="xAdd">Add to training log</button>
+      <div class="note">A watch or heart-rate strap beats any formula — if you have that number, put it in the calories field and it overrides the estimate.</div>
+    </div>
+
+    <div class="log" id="exLog"></div>
+    <div id="exOffset"></div>
+  </section>
+
+  <section class="card pad" style="display:flex;flex-direction:column;gap:11px">
+    <div class="row between"><h2>Last 7 days</h2><span class="lab">Line = target</span></div>
+    <div class="week" id="week"></div>
+  </section>
+
+  <details id="setup">
+    <summary>Body, activity &amp; targets</summary>
+    <div class="dbody">
+      <div class="grid2">
+        <label class="field"><span class="lab">Weight (kg)</span><input id="pWeight" type="number" inputmode="decimal" step="0.1"></label>
+        <label class="field"><span class="lab">Height (cm)</span><input id="pHeight" type="number" inputmode="numeric"></label>
+        <label class="field"><span class="lab">Age</span><input id="pAge" type="number" inputmode="numeric"></label>
+        <label class="field"><span class="lab">Sex</span><select id="pSex"><option value="male">Male</option><option value="female">Female</option></select></label>
+      </div>
+      <label class="field"><span class="lab">Weekly activity</span>
+        <select id="pAct">
+          <option value="1.30">Desk job, little walking, 0–2 sessions</option>
+          <option value="1.40">Desk job + 3–4 hard sessions</option>
+          <option value="1.50">Active job, or 5–6 sessions</option>
+          <option value="1.65">Physical job + daily training</option>
+        </select></label>
+      <label class="field"><span class="lab">Goal</span>
+        <select id="pGoal">
+          <option value="-25">Aggressive fat loss (−25%)</option>
+          <option value="-20">Fat loss (−20%)</option>
+          <option value="-10">Slow fat loss (−10%)</option>
+          <option value="0">Maintain</option>
+          <option value="10">Lean gain (+10%)</option>
+        </select></label>
+      <div class="grid2">
+        <label class="field"><span class="lab">Protein g/kg</span><input id="pProt" type="number" inputmode="decimal" step="0.1"></label>
+        <label class="field"><span class="lab">Fat g/kg</span><input id="pFat" type="number" inputmode="decimal" step="0.1"></label>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:7px">
+        <label class="row" style="gap:8px;font-size:13.5px;font-weight:600">
+          <input type="checkbox" id="pAddBurn" style="width:auto"> Add logged training to my daily target</label>
+        <div class="note" id="burnModeNote"></div>
+      </div>
+      <div class="readout" id="readout"></div>
+      <div class="note" id="mathNote"></div>
+    </div>
+  </details>
+
+  <details id="data">
+    <summary>Backup &amp; data</summary>
+    <div class="dbody">
+      <div id="storeStatus"></div>
+      <div class="row" style="gap:8px;flex-wrap:wrap">
+        <button class="btn" id="copyBtn">Copy backup</button>
+        <button class="btn" id="exportBtn">Download backup</button>
+        <button class="btn" id="showJson">Show / paste data</button>
+        <button class="btn" id="resetBtn" style="margin-left:auto;color:var(--crit)">Reset all</button>
+      </div>
+      <div id="jsonWrap" class="hidden" style="display:flex;flex-direction:column;gap:8px">
+        <textarea id="jsonBox" rows="7" spellcheck="false"></textarea>
+        <div class="row" style="gap:8px"><button class="btn primary sm" id="importBtn">Load pasted data</button>
+        <span class="lab" id="importMsg"></span></div>
+      </div>
+      <div class="note">Your log lives in this browser only. Back it up before switching device — download the file, or copy the text and paste it in on the other one.</div>
+    </div>
+  </details>
+
+  <div class="foot">Mifflin&#8209;St Jeor BMR × activity, adjusted for goal. Protein and fat set per kg bodyweight; carbs take the remainder. Estimates, not medical advice.</div>
+</div>
+
+<script>
+"use strict";
+const KEY = "macroLedger.v1";
+const $ = id => document.getElementById(id);
+
+/* ---------------- data ---------------- */
+const DEFAULT_STATE = {
+  // Neutral placeholders on purpose — no real person's measurements ship in the
+  // source. The first profile edit sets configured and these stop being used.
+  profile:{ sex:"male", age:30, weight:75, height:175, act:1.40, goal:-20, prot:2.0, fat:0.8, addBurn:false, configured:false },
+  custom:[], log:{}, recent:[], theme:null,
+  customEx:[], ex:{}, recentEx:[]
+};
+
+// name, unit, basis (amount the macros describe), kcal, protein, carbs, fat, cuisine
+// "ea" with basis 1 means one standard serve / piece as eaten out.
+const FOODS = [
+  /* ---- Chinese ---- */
+  ["Fried rice, egg and pork","ea",1,340,12,44,12,"Chinese"],
+  ["Chow mein (stir-fried noodles)","ea",1,560,22,72,20,"Chinese"],
+  ["Beef and broccoli","ea",1,480,35,24,26,"Chinese"],
+  ["Kung pao chicken","ea",1,640,40,30,40,"Chinese"],
+  ["Sweet and sour pork","ea",1,700,30,70,34,"Chinese"],
+  ["Mongolian beef","ea",1,620,33,40,34,"Chinese"],
+  ["Mapo tofu","ea",1,380,22,14,26,"Chinese"],
+  ["Char siu (BBQ pork)","g",100,220,22,12,9,"Chinese"],
+  ["Peking duck, meat and skin","g",100,337,19,0,28,"Chinese"],
+  ["Salt and pepper squid","ea",1,480,26,30,27,"Chinese"],
+  ["Wonton soup, 6 wontons","ea",1,220,14,24,7,"Chinese"],
+  ["Egg drop soup","ea",1,100,6,8,4,"Chinese"],
+  ["Congee, plain","ea",1,190,4,40,1,"Chinese"],
+  ["Dumpling, pork, steamed","ea",1,45,2.6,5,1.7,"Chinese"],
+  ["Dumpling, pork, pan-fried","ea",1,60,2.8,5.5,3,"Chinese"],
+  ["Xiao long bao (soup dumpling)","ea",1,55,3,5,2.5,"Chinese"],
+  ["Har gow (prawn dumpling)","ea",1,40,2.5,4.5,1.2,"Chinese"],
+  ["Siu mai","ea",1,60,3.5,4.5,3,"Chinese"],
+  ["Char siu bao (pork bun)","ea",1,250,9,34,8,"Chinese"],
+  ["Spring roll, fried","ea",1,130,3,13,7,"Chinese"],
+  ["Bok choy, stir-fried","g",100,60,2,4,4,"Chinese"],
+  ["Hainanese chicken rice","ea",1,700,35,75,28,"Chinese"],
+  ["Wonton noodle soup","ea",1,450,24,60,12,"Chinese"],
+  ["Honey chicken, takeaway","ea",1,800,28,90,36,"Chinese"],
+  ["Lemon chicken, takeaway","ea",1,750,30,80,34,"Chinese"],
+  ["Mongolian lamb, takeaway","ea",1,700,32,40,44,"Chinese"],
+  ["Fried rice, takeaway large","ea",1,700,22,90,26,"Chinese"],
+  ["Salt and pepper chicken ribs","ea",1,600,30,30,40,"Chinese"],
+  ["Wonton, deep fried","ea",1,70,2.5,5,4.5,"Chinese"],
+  ["Prawn toast","ea",1,130,4,9,8,"Chinese"],
+  ["Peking duck pancake","ea",1,180,8,14,10,"Chinese"],
+  ["Dim sim, fried","ea",1,130,5,12,7,"Chinese"],
+  ["Prawn crackers","g",30,160,1,18,9,"Chinese"],
+  ["Youtiao (fried dough stick)","ea",1,250,5,30,12,"Chinese"],
+  ["Egg tart","ea",1,220,4,24,12,"Chinese"],
+  ["Pineapple bun","ea",1,320,6,45,13,"Chinese"],
+  ["Sesame ball (jian dui)","ea",1,180,3,28,7,"Chinese"],
+  ["Mango pudding","ea",1,200,3,32,7,"Chinese"],
+  ["Fried ice cream","ea",1,400,5,50,20,"Chinese"],
+
+  /* ---- Japanese ---- */
+  ["Tonkotsu ramen","ea",1,850,38,80,42,"Japanese"],
+  ["Shoyu ramen","ea",1,600,30,75,20,"Japanese"],
+  ["Udon noodle soup","ea",1,480,18,80,8,"Japanese"],
+  ["Soba noodles, cooked","g",100,99,5,21,0.1,"Japanese"],
+  ["Chicken katsu","ea",1,500,32,30,27,"Japanese"],
+  ["Katsu curry with rice","ea",1,950,40,100,42,"Japanese"],
+  ["Japanese beef curry with rice","ea",1,780,28,105,26,"Japanese"],
+  ["Chicken teriyaki","ea",1,420,35,25,20,"Japanese"],
+  ["Chicken karaage","g",100,290,20,12,18,"Japanese"],
+  ["Yakitori skewer","ea",1,80,8,3,4,"Japanese"],
+  ["Gyoza, pan-fried","ea",1,55,2.7,5.5,2.6,"Japanese"],
+  ["Sushi roll, salmon avocado, 6 pc","ea",1,300,12,42,9,"Japanese"],
+  ["Nigiri, salmon","ea",1,60,4,8,1.5,"Japanese"],
+  ["Sashimi, tuna","g",100,130,28,0,1.5,"Japanese"],
+  ["Onigiri (rice ball)","ea",1,180,4,37,1,"Japanese"],
+  ["Poke bowl, salmon","ea",1,620,34,65,24,"Japanese"],
+  ["Prawn tempura","ea",1,75,4,6,4,"Japanese"],
+  ["Okonomiyaki","ea",1,550,22,55,26,"Japanese"],
+  ["Miso soup","ea",1,60,4,6,2,"Japanese"],
+  ["Edamame","g",100,122,11,10,5,"Japanese"],
+  ["Natto","g",50,100,9,6,5,"Japanese"],
+  ["Katsu sando","ea",1,620,26,55,32,"Japanese"],
+  ["Takoyaki, 6 pc","ea",1,380,12,40,19,"Japanese"],
+  ["Taiyaki","ea",1,250,5,45,6,"Japanese"],
+  ["Melon pan","ea",1,350,7,55,12,"Japanese"],
+  ["Dorayaki","ea",1,230,6,45,3,"Japanese"],
+  ["Mochi","ea",1,100,1.5,22,0.5,"Japanese"],
+  ["Mochi ice cream","ea",1,110,1.5,18,3.5,"Japanese"],
+  ["Matcha latte, full cream","ea",1,190,7,26,6,"Japanese"],
+
+  /* ---- Korean ---- */
+  ["Bibimbap","ea",1,620,26,85,18,"Korean"],
+  ["Korean fried chicken","g",100,320,20,20,18,"Korean"],
+  ["Bulgogi beef","g",150,380,28,14,22,"Korean"],
+  ["Samgyeopsal (pork belly)","g",100,520,15,0,50,"Korean"],
+  ["Japchae (glass noodles)","ea",1,480,12,70,16,"Korean"],
+  ["Tteokbokki (rice cakes)","ea",1,480,10,90,9,"Korean"],
+  ["Kimchi jjigae","ea",1,320,22,14,19,"Korean"],
+  ["Sundubu jjigae (soft tofu stew)","ea",1,350,24,16,20,"Korean"],
+  ["Gimbap roll","ea",1,320,10,55,7,"Korean"],
+  ["Kimchi","g",100,23,1.7,4,0.5,"Korean"],
+  ["Korean fried chicken, soy garlic, half order","ea",1,700,40,45,38,"Korean"],
+  ["Korean fried chicken, yangnyeom, half order","ea",1,750,38,60,38,"Korean"],
+  ["Korean corn dog","ea",1,420,11,48,20,"Korean"],
+  ["Cheese buldak (fire chicken)","ea",1,780,42,45,44,"Korean"],
+  ["Bingsu (shaved ice dessert)","ea",1,450,9,75,13,"Korean"],
+  ["Hotteok (sweet pancake)","ea",1,230,3,38,8,"Korean"],
+  ["Soju, 360 ml bottle","ea",1,400,0,0,0,"Korean"],
+
+  /* ---- Thai ---- */
+  ["Pad thai, chicken","ea",1,750,30,90,28,"Thai"],
+  ["Pad see ew","ea",1,720,26,88,28,"Thai"],
+  ["Pad krapow with rice and fried egg","ea",1,780,36,80,34,"Thai"],
+  ["Green curry, chicken (no rice)","ea",1,480,28,16,34,"Thai"],
+  ["Red curry, beef (no rice)","ea",1,500,28,18,35,"Thai"],
+  ["Massaman curry (no rice)","ea",1,560,26,24,40,"Thai"],
+  ["Tom yum goong","ea",1,190,18,12,7,"Thai"],
+  ["Tom kha gai","ea",1,350,18,12,26,"Thai"],
+  ["Som tam (green papaya salad)","ea",1,130,4,26,2,"Thai"],
+  ["Thai fish cake","ea",1,90,6,6,4.5,"Thai"],
+  ["Chicken satay skewer","ea",1,90,9,3,5,"Thai"],
+  ["Sticky rice, 1 cup","ea",1,290,6,63,0.5,"Thai"],
+  ["Mango sticky rice","ea",1,480,6,85,13,"Thai"],
+  ["Thai iced tea","ea",1,300,4,50,9,"Thai"],
+  ["Curry puff","ea",1,250,5,25,14,"Thai"],
+  ["Banana fritters","ea",1,300,3,45,13,"Thai"],
+  ["Crispy pork belly with rice","ea",1,850,35,80,44,"Thai"],
+
+  /* ---- Vietnamese ---- */
+  ["Pho bo (beef noodle soup)","ea",1,480,30,65,10,"Vietnamese"],
+  ["Pho ga (chicken noodle soup)","ea",1,420,28,62,6,"Vietnamese"],
+  ["Banh mi, pork","ea",1,560,24,62,22,"Vietnamese"],
+  ["Rice paper roll","ea",1,80,5,12,1,"Vietnamese"],
+  ["Bun cha (grilled pork, noodles)","ea",1,620,32,70,22,"Vietnamese"],
+  ["Bun thit nuong (vermicelli bowl)","ea",1,600,30,72,20,"Vietnamese"],
+  ["Com tam (broken rice, pork chop)","ea",1,720,34,85,26,"Vietnamese"],
+  ["Vietnamese iced coffee","ea",1,180,3,28,6,"Vietnamese"],
+  ["Banh xeo (crispy pancake)","ea",1,520,18,50,27,"Vietnamese"],
+  ["Spring roll, fried (cha gio)","ea",1,120,4,11,7,"Vietnamese"],
+  ["Che (sweet dessert soup)","ea",1,320,4,58,9,"Vietnamese"],
+
+  /* ---- Indian ---- */
+  ["Butter chicken","ea",1,490,30,14,35,"Indian"],
+  ["Chicken tikka","g",100,190,26,3,8,"Indian"],
+  ["Tandoori chicken","g",100,165,25,2,6,"Indian"],
+  ["Rogan josh, lamb","ea",1,480,30,12,34,"Indian"],
+  ["Chana masala","ea",1,300,12,40,10,"Indian"],
+  ["Dal tadka","ea",1,250,12,32,8,"Indian"],
+  ["Palak paneer","ea",1,380,17,12,30,"Indian"],
+  ["Paneer","g",100,296,18,4,23,"Indian"],
+  ["Chicken biryani","ea",1,700,30,85,26,"Indian"],
+  ["Naan, plain","ea",1,260,8,45,5,"Indian"],
+  ["Roti / chapati","ea",1,120,4,20,3,"Indian"],
+  ["Samosa","ea",1,250,5,28,13,"Indian"],
+  ["Papadum","ea",1,40,2,5,1.5,"Indian"],
+  ["Raita","ea",1,90,5,8,4,"Indian"],
+  ["Masala dosa","ea",1,390,8,60,13,"Indian"],
+  ["Idli","ea",1,60,2,12,0.3,"Indian"],
+  ["Butter naan / garlic naan","ea",1,320,8,45,12,"Indian"],
+  ["Pakora","g",100,315,7,30,19,"Indian"],
+  ["Onion bhaji","ea",1,180,4,17,11,"Indian"],
+  ["Gulab jamun","ea",1,150,2,22,6,"Indian"],
+  ["Jalebi","g",50,200,1.5,35,7,"Indian"],
+  ["Kulfi","ea",1,220,5,24,12,"Indian"],
+  ["Mango lassi","ea",1,320,8,55,8,"Indian"],
+  ["Vindaloo, pork","ea",1,520,30,16,38,"Indian"],
+  ["Korma, chicken","ea",1,560,28,20,42,"Indian"],
+
+  /* ---- Malaysian: mamak, kopitiam, hawker ---- */
+  ["Nasi lemak, sambal and egg","ea",1,700,20,80,33,"Malaysian"],
+  ["Nasi lemak with fried chicken","ea",1,950,38,90,48,"Malaysian"],
+  ["Nasi kandar with chicken and curries","ea",1,900,35,100,40,"Malaysian"],
+  ["Nasi campur, 3 dishes","ea",1,750,30,85,32,"Malaysian"],
+  ["Nasi goreng kampung","ea",1,680,22,80,28,"Malaysian"],
+  ["Nasi briyani with mutton","ea",1,950,38,105,40,"Malaysian"],
+  ["Banana leaf rice with chicken","ea",1,900,35,110,35,"Malaysian"],
+  ["Char kuey teow","ea",1,745,22,76,38,"Malaysian"],
+  ["Hokkien mee","ea",1,680,26,72,30,"Malaysian"],
+  ["Mee goreng mamak","ea",1,660,20,80,28,"Malaysian"],
+  ["Maggi goreng","ea",1,620,18,78,26,"Malaysian"],
+  ["Curry mee","ea",1,620,22,60,33,"Malaysian"],
+  ["Asam laksa","ea",1,420,20,60,11,"Malaysian"],
+  ["Curry laksa","ea",1,700,26,65,38,"Malaysian"],
+  ["Wantan mee, dry","ea",1,550,24,70,18,"Malaysian"],
+  ["Pan mee","ea",1,520,22,65,18,"Malaysian"],
+  ["Mee rebus","ea",1,500,18,70,16,"Malaysian"],
+  ["Mee siam","ea",1,480,14,70,15,"Malaysian"],
+  ["Lor mee","ea",1,500,20,70,15,"Malaysian"],
+  ["Tomyam mee, mamak","ea",1,550,22,65,22,"Malaysian"],
+  ["Char siew rice","ea",1,700,32,85,26,"Malaysian"],
+  ["Nasi ayam penyet","ea",1,800,40,85,34,"Malaysian"],
+  ["Ayam goreng berempah, 1 pc","ea",1,320,24,12,20,"Malaysian"],
+  ["Satay celup","ea",1,600,30,25,42,"Malaysian"],
+  ["Satay, chicken, 10 sticks with sauce","ea",1,700,55,25,42,"Malaysian"],
+  ["Satay with peanut sauce, 3 sticks","ea",1,330,25,12,20,"Malaysian"],
+  ["Beef rendang","ea",1,470,30,10,34,"Malaysian"],
+  ["Bak kut teh","ea",1,400,32,6,27,"Malaysian"],
+  ["Chilli crab with mantou","ea",1,900,45,70,45,"Malaysian"],
+  ["Yong tau foo, 6 pieces with soup","ea",1,350,25,25,16,"Malaysian"],
+  ["Chee cheong fun","ea",1,300,8,50,8,"Malaysian"],
+  ["Roti canai, plain","ea",1,300,6,38,14,"Malaysian"],
+  ["Roti canai with dhal and curry","ea",1,400,9,45,19,"Malaysian"],
+  ["Roti telur","ea",1,380,11,42,18,"Malaysian"],
+  ["Roti bom","ea",1,400,6,50,20,"Malaysian"],
+  ["Roti tissue","ea",1,450,7,70,16,"Malaysian"],
+  ["Roti john","ea",1,620,26,55,32,"Malaysian"],
+  ["Murtabak, chicken","ea",1,650,28,65,30,"Malaysian"],
+  ["Thosai, plain","ea",1,200,5,35,5,"Malaysian"],
+  ["Ramly burger special","ea",1,550,22,40,32,"Malaysian"],
+  ["Ramly burger, double special","ea",1,780,32,45,50,"Malaysian"],
+  ["Fried chicken, 2 pc with rice","ea",1,750,40,70,32,"Malaysian"],
+  ["Pasembur","ea",1,450,12,50,22,"Malaysian"],
+  ["Rojak, fruit","ea",1,250,5,45,6,"Malaysian"],
+  ["Popiah","ea",1,140,5,20,5,"Malaysian"],
+  ["Otak-otak","ea",1,60,4,2,4,"Malaysian"],
+  ["Cucur udang (prawn fritter)","ea",1,120,4,12,6,"Malaysian"],
+  ["Keropok lekor","g",100,250,8,30,11,"Malaysian"],
+  ["Kaya toast with butter","ea",1,340,7,45,14,"Malaysian"],
+  ["Pisang goreng (fried banana)","ea",1,280,3,40,13,"Malaysian"],
+  ["Apam balik","ea",1,400,8,55,16,"Malaysian"],
+  ["Kuih, assorted, 2 pieces","ea",1,220,3,38,7,"Malaysian"],
+  ["Ondeh ondeh, 5 pieces","ea",1,200,2,35,6,"Malaysian"],
+  ["Bubur cha cha","ea",1,300,3,50,10,"Malaysian"],
+  ["Cendol","ea",1,350,3,50,16,"Malaysian"],
+  ["Ais kacang (ABC)","ea",1,320,4,65,6,"Malaysian"],
+  ["Durian","g",100,147,1.5,27,5.3,"Malaysian"],
+  ["Teh tarik","ea",1,180,5,28,5.5,"Malaysian"],
+  ["Teh o ais limau","ea",1,90,0,22,0,"Malaysian"],
+  ["Kopi (condensed milk)","ea",1,130,3,22,3.5,"Malaysian"],
+  ["Kopi o","ea",1,40,0,10,0,"Malaysian"],
+  ["Kopi peng (iced)","ea",1,160,3,28,4,"Malaysian"],
+  ["Milo ais","ea",1,250,7,42,6,"Malaysian"],
+  ["Milo dinosaur","ea",1,400,10,65,11,"Malaysian"],
+  ["Sirap bandung","ea",1,220,4,45,3,"Malaysian"],
+  ["Air limau ais","ea",1,120,0,30,0,"Malaysian"],
+  ["Sugarcane juice, 400 ml","ea",1,200,0,50,0,"Malaysian"],
+
+  /* ---- SE Asian (Indonesian, Singaporean) ---- */
+  ["Nasi goreng","ea",1,640,22,78,26,"SE Asian"],
+  ["Mee goreng","ea",1,660,20,80,28,"SE Asian"],
+  ["Gado gado","ea",1,420,16,30,26,"SE Asian"],
+  ["Tempeh","g",100,192,20,8,11,"SE Asian"],
+  ["Martabak manis (sweet)","ea",1,480,9,60,23,"SE Asian"],
+  ["Ayam penyet","ea",1,650,38,45,34,"SE Asian"],
+  ["Soto ayam","ea",1,380,26,35,14,"SE Asian"],
+  ["Bakso (meatball soup)","ea",1,420,22,45,16,"SE Asian"],
+  ["Sate ayam, Indonesian, 5 sticks","ea",1,450,32,20,26,"SE Asian"],
+  ["Halo halo","ea",1,400,7,70,11,"Filipino"],
+  ["Lechon kawali (crispy pork)","ea",1,700,32,4,62,"Filipino"],
+  ["Chicken inasal","ea",1,420,38,8,26,"Filipino"],
+  ["Ube cake, 1 slice","ea",1,380,5,52,17,"Filipino"],
+  ["Chicken adobo","ea",1,450,32,8,32,"Filipino"],
+  ["Pork sisig","ea",1,560,28,6,46,"Filipino"],
+  ["Pancit bihon","ea",1,420,16,60,12,"Filipino"],
+  ["Lumpia","ea",1,90,3,8,5,"Filipino"],
+  ["Sinigang na baboy","ea",1,380,26,14,24,"Filipino"],
+
+  /* ---- Middle East and Mediterranean ---- */
+  ["Chicken shawarma wrap","ea",1,620,34,55,28,"Middle East"],
+  ["Lamb souvlaki / kebab","ea",1,650,34,55,32,"Middle East"],
+  ["Falafel ball","ea",1,60,2.5,6,3,"Middle East"],
+  ["Hummus","g",100,177,8,14,10,"Middle East"],
+  ["Tabbouleh","g",100,120,3,15,6,"Middle East"],
+  ["Grilled halloumi","g",100,330,22,2,26,"Middle East"],
+  ["Greek salad","ea",1,230,7,10,18,"Italian & Med"],
+  ["Margherita pizza, 1 slice","ea",1,250,11,30,9,"Italian & Med"],
+  ["Couscous, cooked","g",100,112,3.8,23,0.2,"Italian & Med"],
+
+  /* ---- Pasta: baked ---- */
+  ["Beef lasagna","ea",1,700,38,55,34,"Italian & Med"],
+  ["Beef lasagna, large restaurant serve","ea",1,900,48,70,44,"Italian & Med"],
+  ["Beef lasagna, frozen single serve","ea",1,400,20,40,17,"Italian & Med"],
+  ["Vegetable lasagna","ea",1,550,22,55,26,"Italian & Med"],
+  ["Cannelloni, beef","ea",1,680,34,60,32,"Italian & Med"],
+  ["Cannelloni, spinach and ricotta","ea",1,600,24,60,28,"Italian & Med"],
+  ["Baked ziti","ea",1,650,30,70,26,"Italian & Med"],
+  ["Mac and cheese","ea",1,700,26,70,34,"Italian & Med"],
+  ["Tuna pasta bake","ea",1,620,35,65,22,"Italian & Med"],
+
+  /* ---- Pasta: sauced ---- */
+  ["Spaghetti bolognese","ea",1,670,32,80,24,"Italian & Med"],
+  ["Spaghetti and meatballs","ea",1,800,40,85,30,"Italian & Med"],
+  ["Beef ragu pappardelle","ea",1,750,40,80,28,"Italian & Med"],
+  ["Spaghetti carbonara","ea",1,850,34,85,40,"Italian & Med"],
+  ["Fettuccine alfredo","ea",1,900,26,90,48,"Italian & Med"],
+  ["Chicken alfredo pasta","ea",1,950,45,88,46,"Italian & Med"],
+  ["Penne arrabbiata","ea",1,550,16,90,12,"Italian & Med"],
+  ["Penne alla vodka","ea",1,700,20,85,30,"Italian & Med"],
+  ["Spaghetti aglio e olio","ea",1,600,15,88,20,"Italian & Med"],
+  ["Spaghetti napolitana","ea",1,500,15,88,10,"Italian & Med"],
+  ["Spaghetti puttanesca","ea",1,560,18,85,16,"Italian & Med"],
+  ["Bucatini amatriciana","ea",1,650,22,85,22,"Italian & Med"],
+  ["Cacio e pepe","ea",1,700,24,88,26,"Italian & Med"],
+  ["Penne pesto","ea",1,700,20,85,30,"Italian & Med"],
+  ["Chicken pesto pasta","ea",1,800,45,85,30,"Italian & Med"],
+  ["Seafood marinara pasta","ea",1,650,35,85,18,"Italian & Med"],
+  ["Prawn linguine","ea",1,620,32,80,18,"Italian & Med"],
+  ["Pasta salad, 1 cup","ea",1,300,8,40,12,"Italian & Med"],
+
+  /* ---- Pasta: filled and potato ---- */
+  ["Ravioli, spinach and ricotta","ea",1,550,22,65,22,"Italian & Med"],
+  ["Ravioli, beef","ea",1,600,28,65,24,"Italian & Med"],
+  ["Tortellini with cream sauce","ea",1,750,28,75,36,"Italian & Med"],
+  ["Gnocchi with tomato sauce","ea",1,550,15,90,14,"Italian & Med"],
+  ["Gnocchi, potato, plain","g",100,130,3.5,27,0.5,"Italian & Med"],
+
+  /* ---- Italian sides and sauces ---- */
+  ["Chicken parmigiana with pasta","ea",1,1000,55,80,45,"Italian & Med"],
+  ["Arancini","ea",1,180,6,20,8,"Italian & Med"],
+  ["Bruschetta","ea",1,120,3,15,5,"Italian & Med"],
+  ["Meatball, beef","ea",1,80,6,2,5.5,"Italian & Med"],
+  ["Bolognese sauce","g",100,120,8,6,7,"Italian & Med"],
+  ["Napolitana sauce","g",100,55,2,8,1.5,"Italian & Med"],
+  ["Alfredo sauce","g",100,200,4,5,18,"Italian & Med"],
+  ["Pesto","g",30,145,3,2,14,"Italian & Med"],
+  ["Parmesan","g",20,84,7.5,0.7,5.6,"Italian & Med"],
+
+  /* ---- Mexican and Western ---- */
+  ["Beef burrito","ea",1,780,36,85,30,"Mexican"],
+  ["Chicken burrito bowl","ea",1,620,42,65,18,"Mexican"],
+  ["Beef taco","ea",1,210,11,17,11,"Mexican"],
+  ["Guacamole","g",100,160,2,9,14.5,"Mexican"],
+  ["Chicken caesar salad","ea",1,480,32,14,33,"Western"],
+  ["Croissant","ea",1,270,5.5,31,14,"Western"],
+  ["Banana bread, 1 slice","ea",1,320,5,48,12,"Western"],
+  ["Sourdough toast, 1 slice","ea",1,130,5,24,1,"Western"],
+  ["Bacon rasher","ea",1,60,4.5,0,4.6,"Western"],
+  ["Sausage, BBQ","ea",1,230,12,3,19,"Western"],
+  ["Bacon and egg roll","ea",1,520,24,40,28,"Western"],
+  ["Protein bar","ea",1,210,20,22,6,"Western"],
+  ["Flat white, full cream","ea",1,120,6.5,9.5,6.3,"Western"],
+  ["Cappuccino, full cream","ea",1,110,6,9,6,"Western"],
+
+  /* ---- Fast food and takeaway ---- */
+  ["Cheeseburger, single","ea",1,300,15,32,12,"Fast food"],
+  ["Quarter-pound cheeseburger","ea",1,520,30,42,26,"Fast food"],
+  ["Double bacon cheeseburger","ea",1,780,45,44,46,"Fast food"],
+  ["Big double burger with special sauce","ea",1,560,26,46,30,"Fast food"],
+  ["Crispy chicken burger","ea",1,570,27,52,27,"Fast food"],
+  ["Grilled chicken burger","ea",1,400,32,42,10,"Fast food"],
+  ["Chicken nuggets, 6 pc","ea",1,270,15,16,16,"Fast food"],
+  ["Chicken nuggets, 20 pc","ea",1,900,50,54,54,"Fast food"],
+  ["Fries, small","ea",1,230,3,30,11,"Fast food"],
+  ["Fries, medium","ea",1,340,4,44,16,"Fast food"],
+  ["Fries, large","ea",1,490,6,63,23,"Fast food"],
+  ["Loaded cheese and bacon fries","ea",1,700,20,60,42,"Fast food"],
+  ["Onion rings","ea",1,410,6,48,21,"Fast food"],
+  ["Hash brown","ea",1,150,1.5,15,9,"Fast food"],
+  ["Fried chicken, original, 1 pc","ea",1,320,22,9,21,"Fast food"],
+  ["Fried chicken, crispy, 1 pc","ea",1,390,22,14,27,"Fast food"],
+  ["Popcorn chicken, regular","ea",1,400,22,26,22,"Fast food"],
+  ["Buffalo wing","ea",1,100,7,1,7,"Fast food"],
+  ["Pizza, pepperoni, 1 slice","ea",1,300,13,32,13,"Fast food"],
+  ["Pizza, meat lovers, 1 slice","ea",1,340,15,33,17,"Fast food"],
+  ["Garlic bread, 2 pc","ea",1,340,7,40,17,"Fast food"],
+  ["Hot dog with sauce","ea",1,350,12,28,21,"Fast food"],
+  ["Kebab, mixed, large with sauce","ea",1,950,45,80,48,"Fast food"],
+  ["Fish and chips","ea",1,950,40,90,48,"Fast food"],
+  ["Potato scallop","ea",1,190,2,20,11,"Fast food"],
+  ["Sausage roll","ea",1,320,9,27,20,"Fast food"],
+  ["Meat pie","ea",1,420,14,36,24,"Fast food"],
+  ["Chicken parmigiana with chips","ea",1,1100,60,70,60,"Fast food"],
+  ["Nachos with cheese","ea",1,800,22,70,48,"Fast food"],
+  ["Loaded beef and cheese burrito","ea",1,900,40,90,40,"Fast food"],
+  ["Quesadilla, cheese","ea",1,550,22,45,30,"Fast food"],
+  ["Doner kebab plate with chips","ea",1,1050,48,85,55,"Fast food"],
+  ["Instant noodles, 1 packet","ea",1,380,8,52,15,"Fast food"],
+  ["Instant noodles, cup","ea",1,300,6,42,12,"Fast food"],
+  ["Spicy chicken burger (zinger style)","ea",1,550,30,48,26,"Fast food"],
+  ["Fish burger","ea",1,380,16,39,18,"Fast food"],
+  ["Grilled chicken wrap","ea",1,400,25,40,15,"Fast food"],
+  ["Chicken nuggets, 10 pc","ea",1,450,25,27,27,"Fast food"],
+  ["Fried chicken combo, 2 pc + chips + drink","ea",1,1100,45,110,52,"Fast food"],
+  ["Breakfast muffin, egg and bacon","ea",1,300,17,29,12,"Fast food"],
+  ["Sausage and egg muffin","ea",1,480,21,30,30,"Fast food"],
+  ["Hotcakes with syrup","ea",1,580,9,100,16,"Fast food"],
+  ["Soft serve cone","ea",1,200,5,32,6,"Fast food"],
+  ["Sundae, chocolate","ea",1,330,8,53,10,"Fast food"],
+  ["Ice cream blizzard / McFlurry style","ea",1,510,12,80,17,"Fast food"],
+  ["Fried apple pie","ea",1,240,2,32,11,"Fast food"],
+  ["Thickshake, medium","ea",1,530,12,86,15,"Fast food"],
+
+  /* ---- Franchise menus, Malaysia ----
+     Sourcing is uneven: see the note shown above this list in the app. */
+  ["Nando's 1/4 chicken, breast","ea",1,290,42,0,14,"Franchise"],
+  ["Nando's 1/4 chicken, leg and thigh","ea",1,300,28,0,21,"Franchise"],
+  ["Nando's 1/2 chicken","ea",1,623,68,0,38,"Franchise"],
+  ["Nando's whole chicken","ea",1,1250,136,0,76,"Franchise"],
+  ["Nando's chicken breast fillet","ea",1,200,34,0,7,"Franchise"],
+  ["Nando's 5 chicken wings","ea",1,400,38,2,26,"Franchise"],
+  ["Nando's espetada","ea",1,700,65,15,42,"Franchise"],
+  ["Nando's peri-peri chicken burger","ea",1,570,42,50,20,"Franchise"],
+  ["Nando's chicken wrap","ea",1,520,38,48,18,"Franchise"],
+  ["Nando's chicken pita","ea",1,480,36,45,16,"Franchise"],
+  ["Nando's peri-peri chicken bowl","ea",1,787,45,80,30,"Franchise"],
+  ["Nando's chicken salad","ea",1,420,40,20,18,"Franchise"],
+  ["Nando's peri-peri chips, regular","ea",1,440,6,58,20,"Franchise"],
+  ["Nando's peri-peri chips, large","ea",1,600,8,79,27,"Franchise"],
+  ["Nando's sweet potato chips, regular","ea",1,339,4,50,14,"Franchise"],
+  ["Nando's corn on the cob","ea",1,160,5,27,4,"Franchise"],
+  ["Nando's spicy rice","ea",1,300,6,55,6,"Franchise"],
+  ["Nando's coleslaw","ea",1,190,2,12,15,"Franchise"],
+  ["Nando's macho peas","ea",1,130,8,15,3,"Franchise"],
+  ["Nando's garlic bread","ea",1,300,8,40,12,"Franchise"],
+
+  ["KFC Original Recipe chicken, 1 pc","ea",1,280,20,9,18,"Franchise"],
+  ["KFC Hot and Spicy chicken, 1 pc","ea",1,320,20,12,21,"Franchise"],
+  ["KFC Zinger burger","ea",1,460,24,43,20,"Franchise"],
+  ["KFC Zinger Double Down","ea",1,600,40,15,42,"Franchise"],
+  ["KFC popcorn chicken, regular","ea",1,400,22,26,22,"Franchise"],
+  ["KFC nuggets, 6 pc","ea",1,280,15,17,17,"Franchise"],
+  ["KFC cheezy wedges","ea",1,300,6,32,16,"Franchise"],
+  ["KFC cheesy fries","ea",1,350,7,40,18,"Franchise"],
+  ["KFC whipped potato","ea",1,110,2,18,3,"Franchise"],
+  ["KFC coleslaw","ea",1,130,1,12,9,"Franchise"],
+  ["KFC Colonel Rice","ea",1,250,5,45,6,"Franchise"],
+  ["KFC nasi lemak ayam","ea",1,700,30,75,32,"Franchise"],
+  ["KFC chicken rice","ea",1,550,28,70,18,"Franchise"],
+  ["KFC Bandito Pockett","ea",1,450,22,45,20,"Franchise"],
+
+  ["McD Big Mac","ea",1,503,25.9,45.7,24.6,"Franchise"],
+  ["McD Quarter Pounder with Cheese","ea",1,515,32,39,26,"Franchise"],
+  ["McD McChicken","ea",1,400,15,40,20,"Franchise"],
+  ["McD Filet-O-Fish","ea",1,330,15,38,13,"Franchise"],
+  ["McD Spicy Chicken McDeluxe","ea",1,550,27,50,27,"Franchise"],
+  ["McD Ayam Goreng, 1 pc","ea",1,250,20,10,15,"Franchise"],
+  ["McD Nasi Lemak McD","ea",1,650,25,78,28,"Franchise"],
+  ["McD Bubur Ayam","ea",1,240,14,32,6,"Franchise"],
+  ["McD Chicken McNuggets, 6 pc","ea",1,250,13,16,15,"Franchise"],
+  ["McD fries, medium","ea",1,340,4,44,17,"Franchise"],
+  ["McD fries, large","ea",1,490,6,63,23,"Franchise"],
+  ["McD Sausage McMuffin with Egg","ea",1,480,21,30,30,"Franchise"],
+  ["McD hotcakes","ea",1,580,9,100,16,"Franchise"],
+  ["McD McFlurry Oreo","ea",1,510,13,70,20,"Franchise"],
+  ["McD sundae","ea",1,330,8,53,10,"Franchise"],
+  ["McD apple pie","ea",1,240,2,32,11,"Franchise"],
+
+  ["Kenny Rogers 1/4 chicken, drumstick","ea",1,285,46,8,7.8,"Franchise"],
+  ["Kenny Rogers 1/4 chicken, wing","ea",1,408,45,8,20,"Franchise"],
+  ["Kenny Rogers 1/2 chicken","ea",1,600,90,12,22,"Franchise"],
+  ["Kenny Rogers meal with 3 sides","ea",1,700,50,60,28,"Franchise"],
+  ["Kenny Rogers muffin","ea",1,220,4,30,9,"Franchise"],
+  ["Kenny Rogers macaroni and cheese","ea",1,280,10,35,11,"Franchise"],
+  ["Kenny Rogers coleslaw","ea",1,150,2,12,10,"Franchise"],
+
+  ["Marrybrown fried chicken, 1 pc","ea",1,290,20,12,18,"Franchise"],
+  ["Marrybrown Tower Burger","ea",1,550,26,48,28,"Franchise"],
+  ["Marrybrown nasi lemak","ea",1,620,24,72,26,"Franchise"],
+  ["Marrybrown chicken porridge","ea",1,250,15,35,5,"Franchise"],
+  ["Texas Chicken, 1 pc","ea",1,300,21,12,19,"Franchise"],
+  ["Texas Chicken tenders, 3 pc","ea",1,340,28,20,16,"Franchise"],
+  ["Texas Chicken honey butter biscuit","ea",1,210,3,26,10,"Franchise"],
+  ["A&W coney dog","ea",1,340,12,28,20,"Franchise"],
+  ["A&W root beer float","ea",1,320,3,60,8,"Franchise"],
+  ["A&W waffle","ea",1,300,5,45,11,"Franchise"],
+
+  ["Pizza Hut pan pizza, 1 slice","ea",1,250,11,28,10,"Franchise"],
+  ["Pizza Hut thin crust, 1 slice","ea",1,190,9,22,7,"Franchise"],
+  ["Pizza Hut Cheesy 6, 1 slice","ea",1,300,13,30,14,"Franchise"],
+  ["Pizza Hut garlic bread","ea",1,170,4,22,7,"Franchise"],
+  ["Domino's pizza, 1 regular slice","ea",1,230,10,27,9,"Franchise"],
+
+  ["Subway 6in chicken teriyaki","ea",1,370,26,55,5,"Franchise"],
+  ["Subway 6in roasted chicken","ea",1,320,25,46,5,"Franchise"],
+  ["Subway 6in turkey","ea",1,280,18,46,4,"Franchise"],
+  ["Subway 6in tuna","ea",1,480,20,44,25,"Franchise"],
+  ["Subway 6in meatball marinara","ea",1,480,21,58,18,"Franchise"],
+  ["Subway cookie","ea",1,200,2,30,8,"Franchise"],
+
+  ["Starbucks caffe latte, tall","ea",1,150,8,15,6,"Franchise"],
+  ["Starbucks cappuccino, tall","ea",1,100,6,10,4,"Franchise"],
+  ["Starbucks caramel macchiato, tall","ea",1,190,8,25,7,"Franchise"],
+  ["Starbucks green tea latte, tall","ea",1,200,8,31,6,"Franchise"],
+  ["Starbucks mocha frappuccino, grande","ea",1,370,6,55,15,"Franchise"],
+  ["Starbucks java chip frappuccino, grande","ea",1,440,8,63,18,"Franchise"],
+
+  ["Old Town white coffee, hot","ea",1,180,3,25,7,"Franchise"],
+  ["Old Town white coffee, iced","ea",1,200,3,28,8,"Franchise"],
+  ["Old Town nasi lemak","ea",1,600,20,70,28,"Franchise"],
+  ["Secret Recipe chocolate indulgence, 1 slice","ea",1,420,5,45,25,"Franchise"],
+  ["Secret Recipe cheesecake, 1 slice","ea",1,400,7,38,24,"Franchise"],
+  ["Secret Recipe chicken chop","ea",1,550,40,30,30,"Franchise"],
+  ["Sushi King salmon sushi, 2 pc","ea",1,120,8,16,3,"Franchise"],
+  ["Sushi King chicken katsu don","ea",1,650,30,85,22,"Franchise"],
+  ["Sushi King tempura udon","ea",1,550,20,80,16,"Franchise"],
+
+  /* ---- Juice and smoothie bars ---- */
+  ["Mango and berry smoothie, medium","ea",1,330,6,72,2,"Juice bar"],
+  ["Banana smoothie, medium","ea",1,360,8,72,4,"Juice bar"],
+  ["Protein smoothie with whey, medium","ea",1,400,30,50,6,"Juice bar"],
+  ["Banana protein smoothie, large","ea",1,450,22,70,8,"Juice bar"],
+  ["Peanut butter and banana smoothie","ea",1,550,20,70,20,"Juice bar"],
+  ["Chocolate thickshake smoothie","ea",1,600,15,95,18,"Juice bar"],
+  ["Yoghurt and berry smoothie","ea",1,350,12,62,5,"Juice bar"],
+  ["Green smoothie (kale, apple, banana)","ea",1,280,4,62,2,"Juice bar"],
+  ["Low-sugar / skinny smoothie","ea",1,200,6,38,2,"Juice bar"],
+  ["Acai bowl, regular","ea",1,480,8,85,12,"Juice bar"],
+  ["Acai bowl, large with granola and PB","ea",1,700,14,105,25,"Juice bar"],
+  ["Frozen yoghurt cup, medium","ea",1,250,8,48,3,"Juice bar"],
+  ["Orange juice, freshly squeezed 400 ml","ea",1,180,3,42,0.8,"Juice bar"],
+  ["Watermelon juice, 400 ml","ea",1,140,2,35,0.5,"Juice bar"],
+  ["Beetroot, carrot and ginger juice","ea",1,190,3,44,0.5,"Juice bar"],
+  ["Green cold-pressed juice","ea",1,120,2,27,0.5,"Juice bar"],
+  ["Apple juice, 250 ml","ea",1,115,0.2,28,0.3,"Juice bar"],
+  ["Coconut water, 500 ml","ea",1,90,1,20,0,"Juice bar"],
+  ["Wheatgrass shot","ea",1,15,1,2,0,"Juice bar"],
+  ["Ginger and turmeric shot","ea",1,40,0.5,9,0,"Juice bar"],
+
+  /* ---- Coffee and tea ---- */
+  ["Espresso / short black","ea",1,3,0.3,0.5,0,"Coffee & tea"],
+  ["Long black / americano","ea",1,5,0.5,1,0,"Coffee & tea"],
+  ["Cold brew, black","ea",1,5,0.3,1,0,"Coffee & tea"],
+  ["Macchiato","ea",1,15,1,1.5,0.7,"Coffee & tea"],
+  ["Piccolo latte","ea",1,60,3.5,5,3.2,"Coffee & tea"],
+  ["Flat white, regular","ea",1,120,6.5,9.5,6.3,"Coffee & tea"],
+  ["Flat white, large","ea",1,190,10,15,10,"Coffee & tea"],
+  ["Flat white, skim milk","ea",1,80,8,11,0.3,"Coffee & tea"],
+  ["Latte, regular","ea",1,130,7,10,7,"Coffee & tea"],
+  ["Latte, large","ea",1,210,11,16,11,"Coffee & tea"],
+  ["Latte, oat milk","ea",1,140,4,18,5.5,"Coffee & tea"],
+  ["Latte, almond milk","ea",1,90,3,8,5,"Coffee & tea"],
+  ["Latte, soy milk","ea",1,120,6,12,5,"Coffee & tea"],
+  ["Cappuccino, regular","ea",1,110,6,9,6,"Coffee & tea"],
+  ["Cappuccino, large","ea",1,180,9.5,14,10,"Coffee & tea"],
+  ["Iced latte","ea",1,130,6,12,6,"Coffee & tea"],
+  ["Mocha, regular","ea",1,220,8,28,9,"Coffee & tea"],
+  ["Chai latte, regular","ea",1,200,7,32,5,"Coffee & tea"],
+  ["Matcha latte, large","ea",1,260,9,36,8,"Coffee & tea"],
+  ["Hot chocolate, regular","ea",1,230,9,30,9,"Coffee & tea"],
+  ["Caramel frappe, regular","ea",1,350,6,55,12,"Coffee & tea"],
+  ["Iced coffee with ice cream and cream","ea",1,500,10,55,26,"Coffee & tea"],
+  ["Instant coffee with milk","ea",1,40,2,3,2,"Coffee & tea"],
+  ["Tea, black with milk","ea",1,25,1.3,2,1,"Coffee & tea"],
+  ["Tea, green or herbal","ea",1,2,0,0.4,0,"Coffee & tea"],
+  ["Tea with milk and sugar","ea",1,45,1.3,8,1,"Coffee & tea"],
+  ["Sugar, 1 teaspoon","ea",1,16,0,4,0,"Coffee & tea"],
+
+  /* ---- Dessert ---- */
+  ["Ice cream, 2 scoops","ea",1,280,5,32,15,"Dessert"],
+  ["Ice cream, 500 ml tub","ea",1,1100,18,120,60,"Dessert"],
+  ["Gelato, 2 scoops","ea",1,240,4,34,10,"Dessert"],
+  ["Ice cream bar, chocolate coated","ea",1,250,3,24,16,"Dessert"],
+  ["Chocolate brownie","ea",1,400,5,50,21,"Dessert"],
+  ["Chocolate chip cookie, large","ea",1,280,3.5,38,13,"Dessert"],
+  ["Doughnut, glazed","ea",1,260,4,31,14,"Dessert"],
+  ["Doughnut, filled","ea",1,350,5,42,18,"Dessert"],
+  ["Cheesecake, 1 slice","ea",1,450,8,40,28,"Dessert"],
+  ["Chocolate cake, 1 slice","ea",1,400,5,55,18,"Dessert"],
+  ["Carrot cake, 1 slice","ea",1,480,6,60,24,"Dessert"],
+  ["Apple pie, 1 slice","ea",1,320,3,45,14,"Dessert"],
+  ["Tiramisu","ea",1,400,7,40,23,"Dessert"],
+  ["Sticky date pudding","ea",1,550,6,75,25,"Dessert"],
+  ["Churros, 3 with sauce","ea",1,400,5,50,20,"Dessert"],
+  ["Waffle with cream and syrup","ea",1,600,10,80,26,"Dessert"],
+  ["Pancakes, 3 with syrup","ea",1,550,11,90,16,"Dessert"],
+  ["Muffin, blueberry, large","ea",1,450,7,60,20,"Dessert"],
+  ["Almond croissant","ea",1,450,9,45,26,"Dessert"],
+  ["Danish pastry","ea",1,380,6,45,20,"Dessert"],
+  ["Chocolate bar, 50 g","ea",1,260,3.5,28,15,"Dessert"],
+  ["Chocolate, milk, block 100 g","ea",1,535,7.7,59,30,"Dessert"],
+  ["Gummy lollies","g",100,340,5,78,0.5,"Dessert"],
+  ["Nutella","g",20,108,1.2,11,6,"Dessert"],
+
+  /* ---- Snacks ---- */
+  ["Potato crisps","g",50,270,3,26,17,"Snacks"],
+  ["Potato crisps, large bag","g",175,940,11,90,60,"Snacks"],
+  ["Corn chips","g",50,250,3.5,30,13,"Snacks"],
+  ["Salted peanuts","g",50,290,12,8,25,"Snacks"],
+  ["Popcorn, salted","g",30,150,3,18,8,"Snacks"],
+  ["Popcorn, cinema large","ea",1,1200,20,130,65,"Snacks"],
+  ["Pretzels","g",50,190,5,39,1.5,"Snacks"],
+  ["Cheese and crackers","ea",1,350,12,25,22,"Snacks"],
+  ["Beef jerky","g",50,145,25,6,2.5,"Snacks"],
+  ["Muesli bar","ea",1,190,3,28,7,"Snacks"],
+  ["Hot chips / fries, homemade","g",150,470,5,58,24,"Snacks"],
+
+  /* ---- Drinks ---- */
+  ["Cola, 375 ml can","ea",1,160,0,39,0,"Drinks"],
+  ["Cola, 600 ml bottle","ea",1,250,0,64,0,"Drinks"],
+  ["Diet soft drink","ea",1,1,0,0,0,"Drinks"],
+  ["Energy drink, 250 ml","ea",1,110,0,27,0,"Drinks"],
+  ["Energy drink, sugar-free","ea",1,10,0,2,0,"Drinks"],
+  ["Energy drink, large 500 ml","ea",1,220,0,54,0,"Drinks"],
+  ["Orange juice, 250 ml","ea",1,110,1.7,26,0.5,"Drinks"],
+  ["Lemonade, 375 ml can","ea",1,150,0,37,0,"Drinks"],
+  ["Ginger beer, 375 ml","ea",1,160,0,39,0,"Drinks"],
+  ["Tonic water, 200 ml","ea",1,70,0,18,0,"Drinks"],
+  ["Iced tea, bottled 500 ml","ea",1,160,0,40,0,"Drinks"],
+  ["Sports drink, 600 ml","ea",1,150,0,36,0,"Drinks"],
+  ["Electrolyte tablet drink","ea",1,10,0,2,0,"Drinks"],
+  ["Kombucha, 330 ml","ea",1,45,0,11,0,"Drinks"],
+  ["Chocolate milk, 300 ml","ea",1,200,10,28,6,"Drinks"],
+  ["Flavoured milk, 600 ml","ea",1,400,20,55,12,"Drinks"],
+  ["Protein shake, whey and water","ea",1,120,24,2,1.5,"Drinks"],
+  ["Protein shake, whey and full cream milk","ea",1,300,34,17,11,"Drinks"],
+  ["Protein shake, ready to drink 400 ml","ea",1,200,35,8,3,"Drinks"],
+  ["Meal replacement shake","ea",1,300,20,35,8,"Drinks"],
+  ["Gin and tonic","ea",1,175,0,18,0,"Drinks"],
+  ["Vodka soda","ea",1,65,0,0,0,"Drinks"],
+  ["Aperol spritz","ea",1,180,0,18,0,"Drinks"],
+  ["Bubble tea, milk tea with pearls","ea",1,350,3,70,7,"Drinks"],
+  ["Bubble tea, brown sugar milk","ea",1,480,5,90,11,"Drinks"],
+  ["Milkshake, large","ea",1,700,16,110,22,"Drinks"],
+  ["Iced blended coffee, large","ea",1,450,8,70,15,"Drinks"],
+  ["Iced coffee, bottled 500 ml","ea",1,350,12,45,13,"Drinks"],
+  ["Hot chocolate, large","ea",1,350,12,45,13,"Drinks"],
+  ["Beer, mid-strength","ml",375,140,1.5,11,0,"Drinks"],
+  ["Beer, full strength schooner","ea",1,175,1.7,13,0,"Drinks"],
+  ["Beer, pint","ea",1,235,2.3,18,0,"Drinks"],
+  ["Craft IPA, 375 ml","ea",1,210,2,18,0,"Drinks"],
+  ["Cider, 375 ml","ea",1,190,0.5,22,0,"Drinks"],
+  ["Red wine","ml",150,128,0.1,3.9,0,"Drinks"],
+  ["White wine, 150 ml","ea",1,120,0.1,3.8,0,"Drinks"],
+  ["Sparkling wine, 150 ml","ea",1,120,0.2,3,0,"Drinks"],
+  ["Sake, 100 ml","ea",1,134,0.5,5,0,"Drinks"],
+  ["Spirit, neat nip 30 ml","ea",1,65,0,0,0,"Drinks"],
+  ["Spirit with cola","ea",1,180,0,20,0,"Drinks"],
+  ["Whiskey (whisky), nip 30 ml","ea",1,66,0,0,0,"Drinks"],
+  ["Whiskey (whisky), double 60 ml","ea",1,133,0,0,0,"Drinks"],
+  ["Whiskey (whisky), free pour 90 ml","ea",1,200,0,0,0,"Drinks"],
+  ["Whiskey (whisky), cask strength nip","ea",1,100,0,0,0,"Drinks"],
+  ["Whiskey and soda water","ea",1,66,0,0,0,"Drinks"],
+  ["Whiskey and dry ginger ale","ea",1,134,0,17,0,"Drinks"],
+  ["Whiskey and cola","ea",1,150,0,21,0,"Drinks"],
+  ["Old fashioned","ea",1,155,0,5,0,"Drinks"],
+  ["Manhattan","ea",1,180,0,5,0,"Drinks"],
+  ["Whiskey sour","ea",1,190,2,12,0,"Drinks"],
+  ["Hot toddy","ea",1,140,0,15,0,"Drinks"],
+  ["Margarita","ea",1,280,0,30,0,"Drinks"],
+  ["Espresso martini","ea",1,260,0.5,22,1,"Drinks"],
+
+  /* ---- Proteins ---- */
+  ["Chicken breast, cooked","g",100,165,31,0,3.6,"Protein"],
+  ["Chicken thigh, cooked","g",100,209,26,0,10.9,"Protein"],
+  ["Turkey breast, cooked","g",100,135,30,0,1,"Protein"],
+  ["Beef mince 5%, raw","g",100,137,21,0,5,"Protein"],
+  ["Steak, lean, cooked","g",100,214,30,0,10,"Protein"],
+  ["Pork loin, cooked","g",100,195,28,0,8,"Protein"],
+  ["Lamb chop, cooked","g",100,280,25,0,20,"Protein"],
+  ["Salmon, cooked","g",100,208,22,0,13,"Protein"],
+  ["White fish (cod), cooked","g",100,105,23,0,0.9,"Protein"],
+  ["Tuna, tinned in springwater","g",100,116,26,0,1,"Protein"],
+  ["Sardines, tinned","g",100,208,25,0,11,"Protein"],
+  ["Prawns, cooked","g",100,99,24,0.2,0.3,"Protein"],
+  ["Egg, large","ea",1,72,6.3,0.4,4.8,"Protein"],
+  ["Egg white","ea",1,17,3.6,0.2,0.1,"Protein"],
+  ["Tofu, firm","g",100,144,17,2.8,8.7,"Protein"],
+  ["Greek yoghurt, 0% fat","g",100,59,10,3.6,0.4,"Protein"],
+  ["Cottage cheese","g",100,98,11,3.4,4.3,"Protein"],
+  ["Whey protein powder","g",30,120,24,2.4,1.5,"Protein"],
+  ["Casein protein powder","g",30,110,24,3,0.5,"Protein"],
+  ["Black beans, cooked","g",100,132,8.9,23.7,0.5,"Protein"],
+  ["Chickpeas, cooked","g",100,164,8.9,27.4,2.6,"Protein"],
+
+  /* ---- Carbs and staples ---- */
+  ["White rice, cooked","g",100,130,2.7,28,0.3,"Staple"],
+  ["Brown rice, cooked","g",100,123,2.7,25.6,1,"Staple"],
+  ["Rice noodles, cooked","g",100,108,1.8,25,0.2,"Staple"],
+  ["Egg noodles, cooked","g",100,138,4.5,25,2,"Staple"],
+  ["Pasta, cooked","g",100,158,5.8,31,0.9,"Staple"],
+  ["Pasta, wholemeal, cooked","g",100,149,6,30,1.5,"Staple"],
+  ["Pasta, fresh egg, cooked","g",100,165,6.5,30,2,"Staple"],
+  ["Pasta, gluten free, cooked","g",100,130,2.5,28,0.8,"Staple"],
+  ["Spaghetti, dry","g",100,371,13,75,1.5,"Staple"],
+  ["Lasagna sheets, dry","g",100,355,12,71,1.5,"Staple"],
+  ["Quinoa, cooked","g",100,120,4.4,21,1.9,"Staple"],
+  ["Rolled oats, dry","g",100,379,13.2,67.7,6.5,"Staple"],
+  ["Potato, boiled","g",100,87,2,20,0.1,"Staple"],
+  ["Sweet potato, baked","g",100,90,2,21,0.1,"Staple"],
+  ["Wholemeal bread","g",100,247,13,41,3.4,"Staple"],
+  ["Tortilla wrap, white","ea",1,190,5,32,4.5,"Staple"],
+  ["Rice cake","ea",1,35,0.7,7.3,0.3,"Staple"],
+
+  /* ---- Sauces, fats, extras ---- */
+  ["Coconut milk","ml",100,197,2,3,21,"Extras"],
+  ["Coconut cream","ml",100,330,3,6,34,"Extras"],
+  ["Soy milk","ml",100,43,3.3,1.8,1.8,"Extras"],
+  ["Milk, full cream","ml",100,61,3.2,4.8,3.3,"Extras"],
+  ["Milk, skim","ml",100,34,3.4,5,0.1,"Extras"],
+  ["Cheddar cheese","g",100,403,25,1.3,33,"Extras"],
+  ["Olive oil","ml",10,88,0,0,10,"Extras"],
+  ["Sesame oil","ml",10,88,0,0,10,"Extras"],
+  ["Butter","g",10,72,0.1,0,8.1,"Extras"],
+  ["Soy sauce","ml",15,8,1.3,0.8,0,"Extras"],
+  ["Oyster sauce","ml",15,25,0.5,5.5,0,"Extras"],
+  ["Hoisin sauce","ml",15,35,0.5,7,0.5,"Extras"],
+  ["Sriracha","ml",15,15,0,3,0,"Extras"],
+  ["Peanut sauce","g",30,90,3.5,5,6.5,"Extras"],
+  ["Peanut butter","g",100,588,25,20,50,"Extras"],
+  ["Almonds","g",100,579,21,21.6,49.9,"Extras"],
+  ["Cashews","g",100,553,18,30,44,"Extras"],
+  ["Walnuts","g",100,654,15,14,65,"Extras"],
+  ["Chia seeds","g",100,486,17,42,31,"Extras"],
+  ["Honey","g",20,61,0.1,16.4,0,"Extras"],
+  ["Dark chocolate 70%","g",100,598,7.8,45.9,42.6,"Extras"],
+
+  /* ---- Fruit and veg ---- */
+  ["Banana, medium","ea",1,105,1.3,27,0.4,"Fruit & veg"],
+  ["Apple, medium","ea",1,95,0.5,25,0.3,"Fruit & veg"],
+  ["Orange, medium","ea",1,62,1.2,15.4,0.2,"Fruit & veg"],
+  ["Kiwi fruit","ea",1,42,0.8,10,0.4,"Fruit & veg"],
+  ["Medjool date","ea",1,66,0.4,18,0.1,"Fruit & veg"],
+  ["Mango","g",100,60,0.8,15,0.4,"Fruit & veg"],
+  ["Pineapple","g",100,50,0.5,13,0.1,"Fruit & veg"],
+  ["Watermelon","g",100,30,0.6,7.6,0.2,"Fruit & veg"],
+  ["Grapes","g",100,69,0.7,18,0.2,"Fruit & veg"],
+  ["Strawberries","g",100,32,0.7,7.7,0.3,"Fruit & veg"],
+  ["Blueberries","g",100,57,0.7,14.5,0.3,"Fruit & veg"],
+  ["Avocado","g",100,160,2,8.5,14.7,"Fruit & veg"],
+  ["Broccoli","g",100,34,2.8,6.6,0.4,"Fruit & veg"],
+  ["Spinach","g",100,23,2.9,3.6,0.4,"Fruit & veg"],
+  ["Mixed salad leaves","g",100,17,1.4,2.9,0.2,"Fruit & veg"],
+  ["Mushrooms","g",100,22,3.1,3.3,0.3,"Fruit & veg"],
+  ["Carrot","g",100,41,0.9,10,0.2,"Fruit & veg"],
+  ["Capsicum","g",100,31,1,6,0.3,"Fruit & veg"],
+  ["Zucchini","g",100,17,1.2,3.1,0.3,"Fruit & veg"],
+  ["Green beans","g",100,31,1.8,7,0.1,"Fruit & veg"],
+  ["Cucumber","g",100,15,0.7,3.6,0.1,"Fruit & veg"],
+  ["Tomato","g",100,18,0.9,3.9,0.2,"Fruit & veg"],
+  ["Sweet corn","g",100,96,3.4,21,1.5,"Fruit & veg"],
+  ["Green peas","g",100,81,5.4,14,0.4,"Fruit & veg"],
+];
+const LIB = FOODS.map((f,i)=>({id:"L"+i, name:f[0], unit:f[1], basis:f[2], kcal:f[3], p:f[4], c:f[5], f:f[6], cui:f[7]}));
+const CUISINES = ["Malaysian","Chinese","Japanese","Korean","Thai","Vietnamese","Indian","SE Asian","Filipino","Middle East","Italian & Med","Mexican","Western",
+                  "Franchise","Fast food","Juice bar","Coffee & tea","Dessert","Snacks","Drinks",
+                  "Protein","Staple","Extras","Fruit & veg"];
+
+// name, MET, group. A null MET means the item is counted per unit, not per minute.
+const EXERCISES = [
+  ["Weights, hypertrophy / volume", 6.0, "Lifting"],
+  ["Weights, heavy strength, long rests", 5.0, "Lifting"],
+  ["Weights, moderate / general", 3.5, "Lifting"],
+  ["Push / pull / legs session", 6.0, "Lifting"],
+  ["Bodyweight circuit", 8.0, "Lifting"],
+  ["CrossFit / functional WOD", 8.0, "Lifting"],
+  ["Strongman, sled and carries", 9.5, "Lifting"],
+  ["Warm-up and mobility", 2.8, "Lifting"],
+
+  ["HIIT intervals, hard", 10.0, "HIIT & circuit"],
+  ["Circuit training, general", 7.2, "HIIT & circuit"],
+  ["Tabata, 20 on / 10 off", 11.0, "HIIT & circuit"],
+  ["Assault bike, hard intervals", 12.0, "HIIT & circuit"],
+  ["Rowing erg, intervals", 10.0, "HIIT & circuit"],
+  ["Kettlebell swings", 9.8, "HIIT & circuit"],
+  ["Battle ropes", 8.0, "HIIT & circuit"],
+  ["Burpees", 8.0, "HIIT & circuit"],
+  ["Sled push / prowler", 9.5, "HIIT & circuit"],
+  ["Skipping rope, fast", 12.3, "HIIT & circuit"],
+  ["Stair sprints", 11.0, "HIIT & circuit"],
+  ["Boxing, bag work", 7.8, "HIIT & circuit"],
+  ["Boxing, sparring", 9.0, "HIIT & circuit"],
+
+  ["Walk, easy (4 km/h)", 3.0, "Cardio"],
+  ["Walk, brisk (5.5 km/h)", 4.3, "Cardio"],
+  ["Treadmill walk, 8% incline", 6.0, "Cardio"],
+  ["Rucking with pack", 7.0, "Cardio"],
+  ["Hiking", 6.0, "Cardio"],
+  ["Jog (8 km/h)", 8.3, "Cardio"],
+  ["Run (10 km/h)", 9.8, "Cardio"],
+  ["Run, fast (12 km/h)", 11.8, "Cardio"],
+  ["Cycling, easy (16 km/h)", 6.0, "Cardio"],
+  ["Cycling, moderate (20 km/h)", 8.0, "Cardio"],
+  ["Cycling, hard (25 km/h)", 10.0, "Cardio"],
+  ["Spin class", 8.5, "Cardio"],
+  ["Rowing erg, steady", 7.0, "Cardio"],
+  ["Swimming, freestyle steady", 8.3, "Cardio"],
+  ["Swimming, hard", 10.0, "Cardio"],
+  ["Elliptical, steady", 5.0, "Cardio"],
+  ["Stair climber", 9.0, "Cardio"],
+
+  ["Basketball", 6.5, "Sport"],
+  ["Football / soccer", 7.0, "Sport"],
+  ["Tennis, singles", 7.3, "Sport"],
+  ["Tennis, doubles", 6.0, "Sport"],
+  ["Squash", 9.0, "Sport"],
+  ["Padel", 7.0, "Sport"],
+  ["Martial arts / BJJ", 10.0, "Sport"],
+  ["Golf, walking", 4.8, "Sport"],
+  ["Surfing", 3.0, "Sport"],
+  ["Yoga", 3.0, "Sport"],
+  ["Pilates", 3.0, "Sport"],
+  ["Stretching / mobility", 2.3, "Sport"],
+
+  ["Steps", null, "Daily", 0.45, "× 1,000 steps"],
+  ["Walking the dog", 3.0, "Daily"],
+  ["Housework", 3.3, "Daily"],
+  ["Gardening / yard work", 4.0, "Daily"],
+  ["Manual labour", 5.5, "Daily"],
+  ["Carrying shopping / moving boxes", 5.0, "Daily"],
+];
+const EX = EXERCISES.map((e,i)=>({id:"E"+i, name:e[0], met:e[1], grp:e[2], perKg:e[3]||null, unit:e[4]||"min"}));
+const EX_GROUPS = ["Lifting","HIIT & circuit","Cardio","Sport","Daily"];
+const INTENSITIES = [["Easy — could hold a conversation",3],["Moderate — breathing harder",5],["Vigorous — hard to talk",7],["All out — intervals, gasping",10]];
+
+// Two distinct failure modes, and the second is the nasty one:
+//  1. writes throw outright (private mode, storage disabled)
+//  2. writes SUCCEED but the data is discarded between visits — iOS Safari does
+//     this to cross-site iframes under Prevent Cross-Site Tracking.
+// sessionStorage survives a reload within the same tab, so if this tab has
+// loaded before and localStorage has still forgotten us, the store is ephemeral.
+const STORE = (()=>{
+  let ok = true, ephemeral = false, reloaded = false;
+  try{ localStorage.setItem("__probe","1"); localStorage.removeItem("__probe"); }
+  catch(e){ ok = false; }
+  if(ok){
+    try{
+      reloaded = !!sessionStorage.getItem("ml.tab");
+      sessionStorage.setItem("ml.tab","1");
+    }catch(e){}
+    try{
+      const seen = localStorage.getItem("ml.seen");
+      localStorage.setItem("ml.seen", String(Date.now()));
+      if(reloaded && !seen) ephemeral = true;
+    }catch(e){ ok = false; }
+  }
+  return { ok, ephemeral, good: ok && !ephemeral };
+})();
+
+let S = load();
+let day = todayKey();
+let picked = null;
+
+function load(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    if(!raw) return structuredClone(DEFAULT_STATE);
+    const p = JSON.parse(raw);
+    return Object.assign(structuredClone(DEFAULT_STATE), p,
+      {profile:Object.assign({}, DEFAULT_STATE.profile, p.profile||{})});
+  }catch(e){ return structuredClone(DEFAULT_STATE); }
+}
+function save(){
+  try{
+    localStorage.setItem(KEY, JSON.stringify(S));
+    localStorage.setItem("ml.saved", String(Date.now()));
+  }catch(e){}
+  renderStorageStatus();
+}
+
+/* ---------------- dates ---------------- */
+function todayKey(d){ d = d||new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function keyToDate(k){ const [y,m,d]=k.split("-").map(Number); return new Date(y,m-1,d); }
+function shiftDay(k,n){ const d=keyToDate(k); d.setDate(d.getDate()+n); return todayKey(d); }
+const DOW=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"], MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+/* ---------------- maths ---------------- */
+function targets(burned){
+  const p = S.profile;
+  const bmr = 10*p.weight + 6.25*p.height - 5*p.age + (p.sex==="male" ? 5 : -161);
+  const tdee = bmr * p.act;
+  let kcal = tdee * (1 + p.goal/100);
+  const prot = Math.round(p.prot * p.weight);
+  const fat  = Math.round(p.fat  * p.weight);
+  const floor = prot*4 + fat*9 + 40;
+  kcal = Math.max(kcal, floor);
+  let carb = Math.max(0, Math.round((kcal - prot*4 - fat*9)/4));
+  const base = Math.round((prot*4 + fat*9 + carb*4)/5)*5;
+  // Earned-back energy only lifts the target when the profile says training is
+  // NOT already priced into the activity multiplier. It all goes to carbs —
+  // protein and fat requirements do not move with a session.
+  const extra = (p.addBurn && burned>0) ? Math.round(burned) : 0;
+  carb += Math.round(extra/4);
+  return { bmr:Math.round(bmr), tdee:Math.round(tdee), kcal:base+extra, base, extra,
+           prot, carb, fat, fibre:Math.round((base+extra)/1000*14) };
+}
+function totals(k){
+  const list = S.log[k]||[];
+  return list.reduce((a,e)=>({kcal:a.kcal+e.kcal, p:a.p+e.p, c:a.c+e.c, f:a.f+e.f}), {kcal:0,p:0,c:0,f:0});
+}
+function exTotal(k){ return (S.ex[k]||[]).reduce((a,e)=>a+e.kcal, 0); }
+function exKcal(x, amount){
+  return x.met ? x.met*3.5*S.profile.weight/200*amount : amount*x.perKg*S.profile.weight;
+}
+const r0 = n => Math.round(n);
+const r1 = n => Math.round(n*10)/10;
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+/* ---------------- render ---------------- */
+function render(){
+  const burned = exTotal(day);
+  const T = targets(burned), t = totals(day);
+  renderProfileLine(T);
+  renderDate();
+  renderHeadline(T,t,burned);
+  renderGauges(T,t);
+  renderLog(t);
+  renderExercise(T,burned);
+  renderExRecent();
+  renderWeek();
+  renderReadout(T);
+  renderRecent();
+}
+
+function renderProfileLine(T){
+  const p = S.profile;
+  const goalTxt = p.goal<0 ? (Math.abs(p.goal)+"% deficit") : p.goal>0 ? ("+"+p.goal+"% surplus") : "maintenance";
+  // the baseline plan, not today's earned-back total
+  $("profileLine").textContent = `${p.weight} kg · ${p.height} cm · ${p.age} yrs · ${T.base} kcal ${goalTxt}`
+    + (p.configured ? "" : "  · placeholder");
+}
+
+function renderDate(){
+  const d = keyToDate(day), isToday = day===todayKey();
+  $("dateLabel").innerHTML = `<small>${isToday?"Today":DOW[d.getDay()]}</small>${DOW[d.getDay()]} ${d.getDate()} ${MON[d.getMonth()]}`;
+  $("nextDay").disabled = day >= todayKey();
+  $("nextDay").style.opacity = day >= todayKey() ? .35 : 1;
+}
+
+function renderHeadline(T,t,burned){
+  const left = T.kcal - t.kcal;
+  const el = $("headline");
+  const earned = T.extra > 0 ? ` Includes +${T.extra} earned from training.` : "";
+  let state = "under", lab = "Calories remaining", big, cap;
+  if(left < 0){
+    state="over"; lab="Over target";
+    big = "+" + r0(-left);
+    cap = `${r0(t.kcal)} eaten against a ${T.kcal} kcal target.` + earned;
+  } else if(left <= T.kcal*0.06){
+    state="close"; lab="Calories remaining";
+    big = r0(left);
+    cap = `On target — ${r0(t.kcal)} of ${T.kcal} kcal logged.` + earned;
+  } else {
+    big = r0(left);
+    cap = `${r0(t.kcal)} of ${T.kcal} kcal logged.` + earned;
+  }
+  el.dataset.state = state;
+  $("headLab").textContent = lab;
+  $("headBig").textContent = big;
+  $("headCap").textContent = cap;
+}
+
+function gauge(name, val, target, unit){
+  const pct = target>0 ? (val/target)*100 : 0;
+  const over = val > target*1.02;
+  const close = !over && pct >= 92;
+  const state = over ? "over" : close ? "close" : "under";
+  const c = over ? "var(--crit)" : close ? "var(--good)" : "var(--accent)";
+  const left = target - val;
+  const foot = over
+    ? `<b>${r0(-left)} ${unit}</b> over`
+    : `<b>${r0(left)} ${unit}</b> to go`;
+  return `<div class="gauge" data-state="${state}">
+    <div class="top"><span class="name">${name}</span>
+      <span class="fig">${r0(val)}<span class="of"> / ${r0(target)} ${unit}</span></span></div>
+    <div class="track"><div class="fill" style="--pct:${Math.min(100,pct).toFixed(1)}%;--c:${c}"></div></div>
+    <div class="foot"><span>${foot}</span><span>${Math.round(pct)}%</span></div>
+  </div>`;
+}
+function renderGauges(T,t){
+  $("gauges").innerHTML =
+    gauge("Calories", t.kcal, T.kcal, "kcal") +
+    gauge("Protein",  t.p,    T.prot, "g") +
+    gauge("Carbs",    t.c,    T.carb, "g") +
+    gauge("Fat",      t.f,    T.fat,  "g");
+}
+
+function renderLog(t){
+  const list = S.log[day]||[];
+  const el = $("log");
+  $("logCount").textContent = list.length ? `${list.length} item${list.length>1?"s":""}` : "";
+  if(!list.length){
+    el.innerHTML = `<div class="empty">Nothing logged for this day yet.</div>`;
+  } else {
+    el.innerHTML = list.map((e,i)=>`
+      <div class="entry">
+        <div class="grow">
+          <div class="nm">${esc(e.name)}</div>
+          <div class="qt">${e.qty ? esc(e.qty) : "manual entry"}</div>
+        </div>
+        <div class="mac"><b>${r0(e.kcal)}</b>P ${r1(e.p)} · C ${r1(e.c)} · F ${r1(e.f)}</div>
+        <button class="del" data-i="${i}" aria-label="Remove ${esc(e.name)}">×</button>
+      </div>`).join("");
+    el.querySelectorAll(".del").forEach(b=>b.onclick=()=>{
+      (S.log[day]||[]).splice(+b.dataset.i,1);
+      if(!S.log[day].length) delete S.log[day];
+      save(); render();
+    });
+  }
+  $("totals").innerHTML = [["Kcal",r0(t.kcal)],["Protein",r1(t.p)+" g"],["Carbs",r1(t.c)+" g"],["Fat",r1(t.f)+" g"]]
+    .map(([l,v])=>`<div class="t"><b>${v}</b><span class="lab">${l}</span></div>`).join("");
+
+  // Alcohol is 7 kcal/g and lands in none of the three macros, so the calorie
+  // total legitimately runs ahead of what protein + carbs + fat account for.
+  const gap = t.kcal - (t.p*4 + t.c*4 + t.f*9);
+  const un = $("unmacroed");
+  un.classList.toggle("hidden", gap < 80);
+  if(gap >= 80) un.innerHTML = `<div class="note warnish" style="margin-top:10px">
+    <b>${r0(gap)} kcal</b> of today's total sits outside protein, carbs and fat — that is what alcohol contributes.
+    It counts against your calories but does nothing for training.</div>`;
+}
+
+/* ---------------- training ---------------- */
+function allEx(){ return (S.customEx||[]).concat(EX); }
+let exGroup = "Lifting";
+
+function renderExGroups(){
+  $("exGroups").innerHTML = EX_GROUPS.map(g=>
+    `<button class="chip" data-g="${esc(g)}" aria-pressed="${g===exGroup}">${esc(g)}</button>`).join("")
+    + ((S.customEx||[]).length ? `<button class="chip" data-g="Mine" aria-pressed="${exGroup==="Mine"}">My exercises</button>` : "");
+  $("exGroups").querySelectorAll(".chip").forEach(b=>b.onclick=()=>{
+    exGroup = b.dataset.g; renderExGroups(); renderExResults();
+    const on = $("exGroups").querySelector('.chip[aria-pressed="true"]');
+    if(on) on.scrollIntoView({block:"nearest", inline:"center"});
+  });
+}
+
+function renderExResults(){
+  const list = exGroup==="Mine" ? (S.customEx||[]) : allEx().filter(x=>x.grp===exGroup);
+  $("exResults").innerHTML = list.map(x=>{
+    const per = x.met ? `${r0(exKcal(x,30))} kcal / 30 min` : `${r0(exKcal(x,1))} kcal / 1,000 steps`;
+    return `<button data-id="${x.id}"><span class="grow"><span class="nm">${esc(x.name)}</span></span>
+      <span class="k">${per}</span></button>`;
+  }).join("") || `<div class="none">Nothing saved here yet.</div>`;
+  $("exResults").querySelectorAll("button[data-id]").forEach(b=>b.onclick=()=>pickEx(b.dataset.id));
+}
+
+function pickEx(id){
+  const x = allEx().find(e=>e.id===id); if(!x) return;
+  const box = $("exPicked");
+  const steps = !x.met;
+  box.classList.remove("hidden");
+  box.innerHTML = `
+    <div class="row between"><b style="font-size:14.5px">${esc(x.name)}</b>
+      <button class="btn ghost sm" id="xCancel">Cancel</button></div>
+    <label class="field"><span class="lab">${steps ? "Thousands of steps" : "Minutes"}</span>
+      <input id="xQty" type="number" inputmode="decimal" step="any" value="${steps ? 8 : 45}"></label>
+    <div class="row between"><span class="lab">Estimated burn</span>
+      <b class="num" id="xPrev" style="font-size:18px">0 kcal</b></div>
+    <button class="btn primary" id="xPick">Add to training log</button>`;
+  const q = $("xQty");
+  const upd = ()=>{ $("xPrev").textContent = r0(exKcal(x, parseFloat(q.value)||0)) + " kcal"; };
+  q.oninput = upd; upd(); q.select();
+  $("xCancel").onclick = ()=>box.classList.add("hidden");
+  $("xPick").onclick = ()=>{
+    const n = parseFloat(q.value)||0; if(n<=0) return;
+    addEx({ name:x.name, detail: steps ? `${r1(n)} × 1,000 steps` : `${r0(n)} min · ${x.met} MET`,
+            kcal: exKcal(x,n) });
+    box.classList.add("hidden");
+  };
+}
+
+function addEx(e){
+  e.kcal = Math.round(+e.kcal||0);
+  (S.ex[day] = S.ex[day] || []).push(e);
+  S.recentEx = [{name:e.name, detail:e.detail, kcal:e.kcal}]
+    .concat((S.recentEx||[]).filter(r=>!(r.name===e.name && r.detail===e.detail))).slice(0,8);
+  save(); render();
+}
+
+function renderExRecent(){
+  const items = (S.recentEx||[]).slice(0,5);
+  $("exRecentWrap").classList.toggle("hidden", items.length===0);
+  $("exRecent").innerHTML = items.map((r,i)=>
+    `<button class="chip" data-i="${i}">${esc(r.name)} · ${r0(r.kcal)}</button>`).join("");
+  $("exRecent").querySelectorAll(".chip").forEach(b=>b.onclick=()=>{
+    const r = S.recentEx[+b.dataset.i];
+    addEx({name:r.name, detail:r.detail, kcal:r.kcal});
+  });
+}
+
+function renderExercise(T,burned){
+  const list = S.ex[day]||[];
+  $("exSub").textContent = burned ? `${r0(burned)} kcal · ${list.length} entr${list.length>1?"ies":"y"}` : "";
+  $("exLog").innerHTML = !list.length
+    ? `<div class="empty">No training logged for this day.</div>`
+    : list.map((e,i)=>`
+      <div class="entry">
+        <div class="grow"><div class="nm">${esc(e.name)}</div>
+          <div class="qt">${esc(e.detail||"")}</div></div>
+        <div class="mac"><b>${r0(e.kcal)}</b>kcal burnt</div>
+        <button class="del" data-i="${i}" aria-label="Remove ${esc(e.name)}">×</button>
+      </div>`).join("");
+  $("exLog").querySelectorAll(".del").forEach(b=>b.onclick=()=>{
+    S.ex[day].splice(+b.dataset.i,1);
+    if(!S.ex[day].length) delete S.ex[day];
+    save(); render();
+  });
+
+  const off = $("exOffset");
+  if(!burned){ off.innerHTML = ""; return; }
+  off.innerHTML = S.profile.addBurn
+    ? `<div class="note" style="margin-top:10px"><b>+${r0(burned)} kcal added to today's target</b>, all of it into carbs — protein and fat needs do not move with a session. Your target is ${T.base} + ${T.extra} = <b>${T.kcal} kcal</b>.</div>`
+    : `<div class="note warnish" style="margin-top:10px"><b>Logged, but not added to your target.</b> Your activity multiplier already prices in your usual training, so counting it again would double it. If you would rather earn calories back session by session, turn that on in <b>Body, activity &amp; targets</b> and drop the multiplier to the desk-job setting.</div>`;
+}
+
+/* ---------------- week ---------------- */
+function renderWeek(){
+  const cells = [];
+  for(let i=6;i>=0;i--){
+    const k = shiftDay(day,-i), d = keyToDate(k), tt = totals(k);
+    const T = targets(exTotal(k));
+    const ratio = tt.kcal / T.kcal;
+    const max = Math.max(1.35, ratio);
+    const h = Math.min(100, (ratio/max)*100);
+    const targetLine = (1/max)*100;
+    const c = tt.kcal===0 ? "var(--rule)" : ratio>1.02 ? "var(--crit)" : ratio>=0.92 ? "var(--good)" : "var(--accent)";
+    cells.push(`<div class="day" data-today="${k===todayKey()?1:0}">
+      <div class="dv">${tt.kcal?r0(tt.kcal):"–"}</div>
+      <div class="bar" title="${k}: ${r0(tt.kcal)} kcal">
+        <u style="--target:${targetLine.toFixed(1)}%"></u>
+        <i style="--h:${h.toFixed(1)}%;--c:${c}"></i></div>
+      <div class="dl">${DOW[d.getDay()][0]}${DOW[d.getDay()][1].toLowerCase()}</div>
+    </div>`);
+  }
+  $("week").innerHTML = cells.join("");
+}
+
+function renderReadout(T){
+  $("readout").innerHTML = [
+    ["BMR", T.bmr+" kcal"], ["Maintenance", T.tdee+" kcal"], ["Target", T.kcal+" kcal"],
+    ["Protein", T.prot+" g"], ["Carbs", T.carb+" g"], ["Fat", T.fat+" g"], ["Fibre aim", T.fibre+" g"]
+  ].map(([l,v])=>`<div><b>${v}</b><span class="lab">${l}</span></div>`).join("");
+  const p = S.profile;
+  const rate = p.goal<0 ? (T.tdee-T.kcal)*7/7700 : (T.kcal-T.tdee)*7/7700;
+  const dir = p.goal<0 ? "loss" : "gain";
+  $("mathNote").innerHTML = p.goal===0
+    ? `Eating at maintenance: ${T.tdee} kcal. Weight should hold steady.`
+    : `A ${Math.abs(T.tdee-T.kcal)} kcal daily gap projects to roughly <b>${r1(Math.abs(rate))} kg of ${dir} a week</b>. Weigh in at the same time each morning and judge it on the weekly average, not one reading.`;
+}
+
+function renderRecent(){
+  const el = $("recent");
+  const items = (S.recent||[]).slice(0,6);
+  $("recentWrap").classList.toggle("hidden", items.length===0);
+  el.innerHTML = items.map((r,i)=>`<button class="chip" data-i="${i}">${esc(r.name)}</button>`).join("");
+  el.querySelectorAll(".chip").forEach(b=>b.onclick=()=>{
+    const r = S.recent[+b.dataset.i];
+    addEntry({name:r.name, qty:r.qty, kcal:r.kcal, p:r.p, c:r.c, f:r.f});
+  });
+}
+
+/* ---------------- search & add ---------------- */
+function allFoods(){ return S.custom.concat(LIB); }
+let cuisine = null;
+
+const GROUP_BREAK = ["Western","Drinks"]; // dishes | cheat day | ingredients
+function renderCuisines(){
+  $("cuisines").innerHTML = CUISINES.map(c=>
+    `<button class="chip" data-c="${esc(c)}" aria-pressed="${c===cuisine}">${esc(c)}</button>` +
+    (GROUP_BREAK.includes(c) ? `<span class="sep"></span>` : "")).join("");
+  $("cuisines").querySelectorAll(".chip").forEach(b=>b.onclick=()=>{
+    cuisine = (cuisine===b.dataset.c) ? null : b.dataset.c;
+    renderCuisines(); renderResults($("search").value);
+  });
+  // re-rendering resets the scroller to 0, which can hide the chip just tapped
+  const on = $("cuisines").querySelector('.chip[aria-pressed="true"]');
+  if(on) on.scrollIntoView({block:"nearest", inline:"center"});
+}
+
+function basisLabel(f){
+  return f.unit==="ea" ? "per serve" : `per ${f.basis} ${f.unit}`;
+}
+
+function renderResults(q){
+  const el = $("results");
+  // Franchise figures came from mixed sources — say so where it is being used.
+  $("catNote").innerHTML = cuisine === "Franchise"
+    ? `<div class="note warnish" style="margin-bottom:8px">Mixed sourcing. Nando's, McDonald's, KFC and Kenny Rogers figures come from published nutrition data; the rest are estimates built from comparable items, because those chains do not publish full macros for Malaysia. Treat every line as ±15% and overwrite any you can check against a receipt or in-store label.</div>`
+    : "";
+  q = q.trim().toLowerCase();
+  if(!q && !cuisine){ el.innerHTML = ""; el.style.display="none"; return; }
+  el.style.display="flex";
+  let hits = allFoods();
+  if(cuisine) hits = hits.filter(f=>f.cui===cuisine);
+  if(q) hits = hits.filter(f=>(f.name+" "+(f.cui||"")).toLowerCase().includes(q));
+  hits = hits.slice(0, cuisine && !q ? 150 : 25);
+  if(!hits.length){ el.innerHTML = `<div class="none">No match — use “Enter manually”.</div>`; return; }
+  const showCui = !cuisine; // redundant when the list is already filtered to one kitchen
+  el.innerHTML = hits.map(f=>`<button data-id="${f.id}">
+    <span class="grow"><span class="nm">${esc(f.name)}</span>${
+      showCui ? `<span class="cui">${esc(f.cui||"My foods")}</span>` : ""}</span>
+    <span class="k">${r0(f.kcal)} kcal<br>${basisLabel(f)}</span></button>`).join("");
+  el.querySelectorAll("button[data-id]").forEach(b=>b.onclick=()=>pick(b.dataset.id));
+}
+
+function pick(id){
+  picked = allFoods().find(f=>f.id===id);
+  if(!picked) return;
+  const box = $("picked");
+  box.classList.remove("hidden");
+  box.innerHTML = `
+    <div class="row between"><b style="font-size:14.5px">${esc(picked.name)}</b>
+      <button class="btn ghost sm" id="pCancel">Cancel</button></div>
+    <label class="field"><span class="lab">Amount (${picked.unit==="ea"?"servings":picked.unit})</span>
+      <input id="pQty" type="number" inputmode="decimal" step="any" value="${picked.basis}"></label>
+    <div class="preview" id="pPrev"></div>
+    <button class="btn primary" id="pAdd">Add to log</button>`;
+  const qty = $("pQty");
+  const upd = ()=>{
+    const n = parseFloat(qty.value)||0, k = n/picked.basis;
+    $("pPrev").innerHTML = [["kcal",r0(picked.kcal*k)],["P",r1(picked.p*k)],["C",r1(picked.c*k)],["F",r1(picked.f*k)]]
+      .map(([l,v])=>`<div><div class="v">${v}</div><div class="l">${l}</div></div>`).join("");
+  };
+  qty.oninput = upd; upd();
+  qty.select();
+  $("pCancel").onclick = ()=>{ picked=null; box.classList.add("hidden"); };
+  $("pAdd").onclick = ()=>{
+    const n = parseFloat(qty.value)||0; if(n<=0) return;
+    const k = n/picked.basis;
+    addEntry({
+      name: picked.name,
+      qty: picked.unit==="ea" ? `${r1(n)} × serving` : `${r1(n)} ${picked.unit}`,
+      kcal: picked.kcal*k, p: picked.p*k, c: picked.c*k, f: picked.f*k
+    });
+    box.classList.add("hidden"); picked=null;
+    $("search").value=""; renderResults("");
+  };
+}
+
+function addEntry(e){
+  e.kcal = +e.kcal||0; e.p = +e.p||0; e.c = +e.c||0; e.f = +e.f||0;
+  (S.log[day] = S.log[day] || []).push(e);
+  S.recent = [{name:e.name, qty:e.qty, kcal:e.kcal, p:e.p, c:e.c, f:e.f}]
+    .concat((S.recent||[]).filter(r=>!(r.name===e.name && r.qty===e.qty))).slice(0,12);
+  save(); render();
+}
+
+/* ---------------- wiring ---------------- */
+$("prevDay").onclick = ()=>{ day = shiftDay(day,-1); render(); };
+$("nextDay").onclick = ()=>{ if(day<todayKey()){ day = shiftDay(day,1); render(); } };
+$("search").oninput = e => {
+  // typing is the stronger intent: drop the kitchen filter so a search always
+  // looks across the whole library rather than silently returning nothing
+  if(e.target.value.trim() && cuisine){ cuisine = null; renderCuisines(); }
+  renderResults(e.target.value);
+};
+
+$("tabLib").onclick = ()=>switchTab(true);
+$("tabCustom").onclick = ()=>switchTab(false);
+function switchTab(lib){
+  $("tabLib").setAttribute("aria-selected", lib);
+  $("tabCustom").setAttribute("aria-selected", !lib);
+  $("paneLib").classList.toggle("hidden", !lib);
+  $("paneCustom").classList.toggle("hidden", lib);
+}
+
+$("cAdd").onclick = ()=>{
+  const name = $("cName").value.trim() || "Manual entry";
+  const p = +$("cP").value||0, c = +$("cC").value||0, f = +$("cF").value||0;
+  let kcal = $("cKcal").value === "" ? (p*4 + c*4 + f*9) : (+$("cKcal").value||0);
+  if(!kcal && !p && !c && !f) return;
+  if($("cSave").checked){
+    S.custom.unshift({ id:"C"+Date.now(), name, unit:"ea", basis:1, kcal, p, c, f });
+  }
+  addEntry({name, qty:null, kcal, p, c, f});
+  ["cName","cKcal","cP","cC","cF"].forEach(i=>$(i).value="");
+  $("cSave").checked = false;
+  switchTab(true);
+};
+
+$("tabExLib").onclick = ()=>switchExTab(true);
+$("tabExCustom").onclick = ()=>switchExTab(false);
+function switchExTab(lib){
+  $("tabExLib").setAttribute("aria-selected", lib);
+  $("tabExCustom").setAttribute("aria-selected", !lib);
+  $("paneExLib").classList.toggle("hidden", !lib);
+  $("paneExCustom").classList.toggle("hidden", lib);
+}
+
+$("xMet").innerHTML = INTENSITIES.map(([l,m],i)=>
+  `<option value="${m}"${i===2?" selected":""}>${l}</option>`).join("");
+
+$("xAdd").onclick = ()=>{
+  const name = $("xName").value.trim() || "Training session";
+  const mins = +$("xMins").value||0;
+  const met  = +$("xMet").value||7;
+  const direct = $("xKcal").value === "" ? null : (+$("xKcal").value||0);
+  if(!mins && direct===null) return;
+  const kcal = direct !== null ? direct : met*3.5*S.profile.weight/200*mins;
+  const detail = direct !== null
+    ? (mins ? `${mins} min · entered directly` : "entered directly")
+    : `${mins} min · ${met} MET`;
+  if($("xSave").checked){
+    S.customEx.unshift({ id:"X"+Date.now(), name, met: direct!==null && mins ? +(direct/(3.5*S.profile.weight/200*mins)).toFixed(1) : met, grp:"Mine", perKg:null, unit:"min" });
+  }
+  addEx({name, detail, kcal});
+  ["xName","xMins","xKcal"].forEach(i=>$(i).value="");
+  $("xSave").checked = false;
+  renderExGroups();
+  switchExTab(true);
+};
+
+// profile inputs
+const P_FIELDS = {pWeight:"weight", pHeight:"height", pAge:"age", pSex:"sex", pAct:"act", pGoal:"goal", pProt:"prot", pFat:"fat"};
+function syncProfileInputs(){
+  const p = S.profile;
+  $("pWeight").value=p.weight; $("pHeight").value=p.height; $("pAge").value=p.age;
+  $("pSex").value=p.sex; $("pAct").value=p.act.toFixed(2); $("pGoal").value=String(p.goal);
+  $("pProt").value=p.prot; $("pFat").value=p.fat; $("pAddBurn").checked=!!p.addBurn;
+  renderBurnModeNote();
+}
+function renderBurnModeNote(){
+  const p = S.profile;
+  $("burnModeNote").innerHTML = p.addBurn
+    ? `Each logged session raises that day's target by what it burnt. Only correct if your multiplier <b>excludes</b> training — set it to the desk-job option (1.30), or you will count the same sessions twice.`
+    : `Off is right for most people: the multiplier you picked already averages your training across the week, so sessions are baked in. Logged training still shows here — it just does not move the target.`;
+}
+$("pAddBurn").addEventListener("change", ()=>{
+  S.profile.addBurn = $("pAddBurn").checked;
+  save(); renderBurnModeNote(); render();
+});
+Object.keys(P_FIELDS).forEach(id=>{
+  $(id).addEventListener("change", ()=>{
+    const key = P_FIELDS[id], v = $(id).value;
+    S.profile[key] = (key==="sex") ? v : (parseFloat(v)||S.profile[key]);
+    S.profile.configured = true;          // placeholders are done with
+    $("setupPrompt").classList.add("hidden");
+    save(); render();
+  });
+});
+
+$("setupBtn").onclick = ()=>{
+  $("setup").open = true;
+  $("setup").scrollIntoView({block:"start", behavior:"smooth"});
+  $("pWeight").focus();
+};
+
+// theme
+function applyTheme(){
+  if(S.theme) document.documentElement.setAttribute("data-theme", S.theme);
+  else document.documentElement.removeAttribute("data-theme");
+}
+$("themeBtn").onclick = ()=>{
+  S.theme = S.theme==="dark" ? "light" : S.theme==="light" ? null : "dark";
+  applyTheme(); save();
+};
+
+// data
+function renderStorageStatus(){
+  const el = $("storeStatus"); if(!el) return;
+  let saved = null;
+  try{ saved = localStorage.getItem("ml.saved"); }catch(e){}
+  const when = saved ? new Date(+saved) : null;
+  const stamp = when ? when.toLocaleString([], {weekday:"short", hour:"numeric", minute:"2-digit"}) : "never";
+  const verdict = !STORE.ok ? ["crit","Blocked — nothing is being written."]
+    : STORE.ephemeral ? ["crit","Not surviving reloads — this browser discards the data."]
+    : ["good","Working — data written and read back."];
+  el.innerHTML = `<div class="note" style="border-left-color:var(--${verdict[0]});margin-bottom:4px">
+    <b>Storage check:</b> ${verdict[1]}<br>Last saved: <b>${stamp}</b>.
+    Reopen the page and check this line — if the time resets to “never” after you have logged something, your data is not sticking and you should keep a copy with <b>Copy backup</b>.</div>`;
+}
+
+$("copyBtn").onclick = async ()=>{
+  const json = JSON.stringify(S);
+  try{
+    await navigator.clipboard.writeText(json);
+    $("copyBtn").textContent = "Copied";
+    setTimeout(()=>$("copyBtn").textContent = "Copy backup", 1600);
+  }catch(e){
+    $("jsonWrap").classList.remove("hidden");
+    $("jsonBox").value = json; $("jsonBox").select();
+    $("importMsg").textContent = "Select all and copy.";
+  }
+};
+
+$("exportBtn").onclick = async ()=>{
+  const json = JSON.stringify(S,null,2);
+  const fname = `macro-ledger-${todayKey()}.json`;
+  if(window.claude && window.claude.downloads){
+    try{ await window.claude.downloads.save({filename:fname, data:json}); return; }
+    catch(err){ if(err && err.code==="declined") return; }
+  }
+  $("jsonWrap").classList.remove("hidden");
+  $("jsonBox").value = json;
+  $("importMsg").textContent = "Download unavailable here — copy the text instead.";
+};
+$("showJson").onclick = ()=>{
+  const w = $("jsonWrap");
+  w.classList.toggle("hidden");
+  if(!w.classList.contains("hidden")){ $("jsonBox").value = JSON.stringify(S,null,2); $("importMsg").textContent=""; }
+};
+$("importBtn").onclick = ()=>{
+  try{
+    const p = JSON.parse($("jsonBox").value);
+    if(!p || typeof p!=="object" || !("profile" in p)) throw new Error("not a ledger file");
+    S = Object.assign(structuredClone(DEFAULT_STATE), p,
+      {profile:Object.assign({}, DEFAULT_STATE.profile, p.profile||{})});
+    save(); syncProfileInputs(); applyTheme(); renderExGroups(); renderExResults(); render();
+    $("importMsg").textContent = "Loaded.";
+  }catch(e){ $("importMsg").textContent = "Couldn't read that — needs the full backup text."; }
+};
+$("resetBtn").onclick = ()=>{
+  if(!confirm("Delete every logged day and reset your profile? This can't be undone.")) return;
+  S = structuredClone(DEFAULT_STATE); save(); syncProfileInputs(); applyTheme(); renderExGroups(); renderExResults(); render();
+};
+
+if(!S.profile.configured){
+  $("setupPrompt").classList.remove("hidden");
+  $("setup").open = true;
+}
+$("noStore").classList.toggle("hidden", STORE.good);
+$("noStoreTitle").textContent = STORE.ok ? "Your data is not being kept" : "Saving is blocked here";
+$("noStoreBody").innerHTML = STORE.ok
+  ? `This browser accepts the data but throws it away between visits — on iPhone that is Safari's <b>Prevent Cross-Site Tracking</b> discarding storage for embedded pages. Your log will not survive closing the tab. Use <b>Copy backup</b> in Backup &amp; data before you leave, or ask for a version hosted on its own address, which does not hit this restriction.`
+  : `This browser will not let the page store data at all, so today's log disappears when you close the tab. Copy your data out from <b>Backup &amp; data</b> before you leave.`;
+applyTheme();
+syncProfileInputs();
+switchTab(true);
+switchExTab(true);
+renderCuisines();
+renderResults("");
+renderExGroups();
+renderExResults();
+renderExRecent();
+renderStorageStatus();
+render();
+</script>
+
+<script>
+if("serviceWorker" in navigator){
+  window.addEventListener("load", ()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+}
+</script>
+</body>
+</html>
