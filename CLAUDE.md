@@ -1,0 +1,97 @@
+# Macro Ledger
+
+A single-page macro and training tracker. Static site, no build tooling beyond
+one Python script, no dependencies, no framework.
+
+Live: https://riongai.github.io/macro-ledger/
+
+## Which file to edit
+
+**`macro-ledger.html` is the source of truth. Edit that one.**
+
+`index.html` is generated output — it is `macro-ledger.html` wrapped in a
+`<head>`. Editing it directly works until the next build silently discards your
+change. It carries a DO-NOT-EDIT banner at the top for this reason.
+
+| File | Role |
+|---|---|
+| `macro-ledger.html` | **Source. All app changes go here.** |
+| `build.py` | Wraps the source into `index.html` |
+| `index.html` | Generated. Deployed. Do not edit |
+| `sw.js` | Service worker. Bump `CACHE` on every deploy |
+| `manifest.webmanifest` | PWA manifest |
+| `icon-*.png` | Home-screen icons |
+| `make-icons.py` | Regenerates the icons (pure stdlib, no Pillow) |
+| `add-sugar.py` | One-off tool that added sugar to every food row. Kept as the record of how those values were derived |
+
+## Deploy
+
+```bash
+python3 build.py
+# bump CACHE in sw.js: macro-ledger-v4 -> v5
+git add -A && git commit -m "..." && git push
+```
+
+GitHub Pages redeploys automatically, usually inside two minutes.
+
+**Bumping `CACHE` is not optional.** The service worker is cache-first, so
+phones with the app installed keep serving the old copy until the cache name
+changes. Skip it and the deploy appears to do nothing.
+
+Check the deploy:
+
+```bash
+gh api repos/riongai/macro-ledger/pages/builds/latest --jq '{status,error:.error.message}'
+```
+
+`gh` is at `~/.local/bin/gh`, which is in `.zshrc` but not on the PATH of
+non-interactive shells — prefix with `export PATH="$HOME/.local/bin:$PATH"`.
+
+## How the app is structured
+
+One file, three sections: `<style>`, then markup, then `<script>`. Inside the
+script:
+
+- `FOODS` — 645 rows, `[name, unit, basis, kcal, protein, carbs, fat, sugar, cuisine]`.
+  `basis` is the amount the numbers describe: `100` for per-100g ingredients,
+  `1` with unit `"ea"` for a whole serve. `LIB` maps these to objects.
+- `EXERCISES` — 56 rows, `[name, MET, group]`. A null MET means the item is
+  counted per unit (steps) rather than per minute.
+- `targets(burned)` — Mifflin-St Jeor BMR × activity, adjusted for goal.
+  Protein and fat are set per kg bodyweight; carbs take the remainder; the
+  sugar cap is 10% of calories.
+- `render()` — the single entry point. Every state change calls `save()` then
+  `render()`. There is no framework and no virtual DOM; render functions
+  rewrite their own `innerHTML`.
+- State lives in `S`, persisted to `localStorage` under `macroLedger.v1`.
+
+## Conventions that matter
+
+- **No personal data in the source.** Profile defaults are neutral placeholders
+  (75 kg / 175 cm / 30) with a `configured: false` flag; the first-run prompt
+  collects the real values, which stay in the browser. The repo is public —
+  keep it that way.
+- **Self-contained.** No CDN, no external fonts, no network calls at runtime.
+  The service worker caches everything, so the app must work offline.
+- **Theme-aware.** Three states: `:root` light tokens, a
+  `prefers-color-scheme: dark` block guarded with `:not([data-theme="light"])`,
+  and a `[data-theme="dark"]` block. Never define a colour only inside one of
+  them.
+- **Estimates are labelled as estimates.** Franchise and composite-dish figures
+  are derived, not published, and the app says so where they are used. Do not
+  quietly present a derived number as sourced.
+- **Sugar never exceeds carbohydrate.** Enforced in `addEntry` and in the
+  manual-entry form. Preserve that invariant.
+
+## Testing
+
+There is no test suite. Verify in a browser against a real HTTP origin —
+`file://` blocks both `localStorage` and service workers, so it will report
+false failures.
+
+```bash
+python3 -m http.server 8731 --directory .
+```
+
+Then check: the food count is 645, all five gauges render, storage reports
+"Working" in *Backup & data*, and a logged entry survives a reload.
