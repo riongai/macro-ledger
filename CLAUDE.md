@@ -1,6 +1,6 @@
 # Macro Ledger
 
-A single-page macro and training tracker. Static site, no build tooling beyond
+A single-page macro tracker. Static site, no build tooling beyond
 one Python script, no dependencies, no framework.
 
 Live: https://riongai.github.io/macro-ledger/
@@ -55,9 +55,7 @@ script:
 - `FOODS` — 645 rows, `[name, unit, basis, kcal, protein, carbs, fat, sugar, cuisine]`.
   `basis` is the amount the numbers describe: `100` for per-100g ingredients,
   `1` with unit `"ea"` for a whole serve. `LIB` maps these to objects.
-- `EXERCISES` — 56 rows, `[name, MET, group]`. A null MET means the item is
-  counted per unit (steps) rather than per minute.
-- `targets(burned, dayKey)` — Mifflin-St Jeor BMR × activity, adjusted for goal.
+- `targets(dayKey)` — Mifflin-St Jeor BMR × activity, adjusted for goal.
   Protein and fat are set per kg bodyweight; carbs take the remainder; the
   sugar cap is 10% of calories. If `dayKey` is marked drinking, fat switches to
   `profile.drinkFat` and `profile.drinkKcal` is reserved before carbs take what

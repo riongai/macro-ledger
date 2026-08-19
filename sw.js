@@ -1,6 +1,6 @@
 // Cache-first app shell so the ledger opens with no signal — a gym basement
 // should not stop you logging a set. Bump CACHE to force clients onto new code.
-const CACHE = "macro-ledger-v6";
+const CACHE = "macro-ledger-v7";
 const ASSETS = [
   "./",
   "./index.html",

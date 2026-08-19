@@ -1,13 +1,12 @@
 # Macro Ledger
 
-Daily macro and training tracker. One HTML file, no dependencies, works offline,
+Daily macro tracker. One HTML file, no dependencies, works offline,
 installs to the iOS home screen.
 
 **Live: https://riongai.github.io/macro-ledger/**
 
 - 645-food library weighted to Malaysian and wider Asian cooking, plus franchise
   menus, with calories, protein, carbs, fat and sugar
-- 56 exercises with MET-based burn, custom entries and circuits
 - Targets from Mifflin-St Jeor BMR, adjusted for activity and goal
 - Everything stored in your own browser — nothing is sent anywhere
 

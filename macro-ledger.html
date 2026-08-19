@@ -314,45 +314,6 @@ details[open] summary{border-bottom:1px solid var(--rule-2)}
   </section>
 
   <section class="card pad" style="display:flex;flex-direction:column;gap:11px">
-    <div class="row between"><h2>Training &amp; activity</h2><span class="lab" id="exSub"></span></div>
-
-    <div class="tabs" role="tablist">
-      <button role="tab" id="tabExLib" aria-selected="true">Pick an exercise</button>
-      <button role="tab" id="tabExCustom" aria-selected="false">Custom / circuit</button>
-    </div>
-
-    <div id="paneExLib" style="display:flex;flex-direction:column;gap:10px">
-      <div id="exRecentWrap" style="display:flex;flex-direction:column;gap:7px">
-        <div class="lab">Recent</div>
-        <div class="chips" id="exRecent"></div>
-      </div>
-      <div class="chips scroller" id="exGroups"></div>
-      <div class="results" id="exResults"></div>
-      <div class="picked hidden" id="exPicked"></div>
-    </div>
-
-    <div id="paneExCustom" class="hidden" style="display:flex;flex-direction:column;gap:10px">
-      <label class="field"><span class="lab">What did you do</span>
-        <input id="xName" placeholder="e.g. Chest and back circuit, 5 rounds"></label>
-      <div class="grid2">
-        <label class="field"><span class="lab">Minutes</span>
-          <input id="xMins" type="number" inputmode="numeric" min="1" placeholder="45"></label>
-        <label class="field"><span class="lab">How hard</span>
-          <select id="xMet"></select></label>
-      </div>
-      <label class="field"><span class="lab">Or enter calories directly</span>
-        <input id="xKcal" type="number" inputmode="numeric" min="0" placeholder="from your watch or the machine"></label>
-      <label class="row" style="gap:8px;font-size:13px;color:var(--ink-2)">
-        <input type="checkbox" id="xSave" style="width:auto"> Save to my exercises</label>
-      <button class="btn primary" id="xAdd">Add to training log</button>
-      <div class="note">A watch or heart-rate strap beats any formula — if you have that number, put it in the calories field and it overrides the estimate.</div>
-    </div>
-
-    <div class="log" id="exLog"></div>
-    <div id="exOffset"></div>
-  </section>
-
-  <section class="card pad" style="display:flex;flex-direction:column;gap:11px">
     <div class="row between"><h2>Last 7 days</h2><span class="lab">Line = target</span></div>
     <div class="week" id="week"></div>
   </section>
@@ -390,11 +351,6 @@ details[open] summary{border-bottom:1px solid var(--rule-2)}
         <label class="field"><span class="lab">Fat g/kg, drinking days</span><input id="pDrinkFat" type="number" inputmode="decimal" step="0.01"></label>
       </div>
       <div class="note" id="drinkModeNote"></div>
-      <div style="display:flex;flex-direction:column;gap:7px">
-        <label class="row" style="gap:8px;font-size:13.5px;font-weight:600">
-          <input type="checkbox" id="pAddBurn" style="width:auto"> Add logged training to my daily target</label>
-        <div class="note" id="burnModeNote"></div>
-      </div>
       <div class="readout" id="readout"></div>
       <div class="note" id="mathNote"></div>
       <div class="note warnish"><b>About the sugar figure.</b> It counts <b>total</b> sugars — the sugar in fruit and milk as well as anything added. The 10%-of-calories cap it is measured against comes from the WHO guideline on <b>added</b> sugars, so fruit and milk push you toward a line they were never meant to count against. Read a day of whole fruit and yoghurt differently from the same number reached through soft drink. Whole foods use published composition data; restaurant dishes are estimated from what carries the sugar in them, because no chain publishes it.</div>
@@ -432,12 +388,11 @@ const $ = id => document.getElementById(id);
 const DEFAULT_STATE = {
   // Neutral placeholders on purpose — no real person's measurements ship in the
   // source. The first profile edit sets configured and these stop being used.
-  profile:{ sex:"male", age:30, weight:75, height:175, act:1.40, goal:-20, prot:2.0, fat:0.8, addBurn:false, configured:false,
+  profile:{ sex:"male", age:30, weight:75, height:175, act:1.40, goal:-20, prot:2.0, fat:0.8, configured:false,
             // Drinking-day allowance. Neutral placeholders like the rest of the
             // profile — the point is the mechanism, not anyone's actual pour.
             drinkKcal:200, drinkFat:0.65 },
   custom:[], log:{}, recent:[], theme:null,
-  customEx:[], ex:{}, recentEx:[],
   // dayType[dateKey] === "drinking"; absent means dry. Only two types, so the
   // dry case stays unwritten and old data needs no migration.
   dayType:{}
@@ -1158,72 +1113,6 @@ const CUISINES = ["Malaysian","Chinese","Japanese","Korean","Thai","Vietnamese",
                   "Franchise","Fast food","Juice bar","Coffee & tea","Dessert","Snacks","Drinks",
                   "Protein","Staple","Extras","Fruit & veg"];
 
-// name, MET, group. A null MET means the item is counted per unit, not per minute.
-const EXERCISES = [
-  ["Weights, hypertrophy / volume", 6.0, "Lifting"],
-  ["Weights, heavy strength, long rests", 5.0, "Lifting"],
-  ["Weights, moderate / general", 3.5, "Lifting"],
-  ["Push / pull / legs session", 6.0, "Lifting"],
-  ["Bodyweight circuit", 8.0, "Lifting"],
-  ["CrossFit / functional WOD", 8.0, "Lifting"],
-  ["Strongman, sled and carries", 9.5, "Lifting"],
-  ["Warm-up and mobility", 2.8, "Lifting"],
-
-  ["HIIT intervals, hard", 10.0, "HIIT & circuit"],
-  ["Circuit training, general", 7.2, "HIIT & circuit"],
-  ["Tabata, 20 on / 10 off", 11.0, "HIIT & circuit"],
-  ["Assault bike, hard intervals", 12.0, "HIIT & circuit"],
-  ["Rowing erg, intervals", 10.0, "HIIT & circuit"],
-  ["Kettlebell swings", 9.8, "HIIT & circuit"],
-  ["Battle ropes", 8.0, "HIIT & circuit"],
-  ["Burpees", 8.0, "HIIT & circuit"],
-  ["Sled push / prowler", 9.5, "HIIT & circuit"],
-  ["Skipping rope, fast", 12.3, "HIIT & circuit"],
-  ["Stair sprints", 11.0, "HIIT & circuit"],
-  ["Boxing, bag work", 7.8, "HIIT & circuit"],
-  ["Boxing, sparring", 9.0, "HIIT & circuit"],
-
-  ["Walk, easy (4 km/h)", 3.0, "Cardio"],
-  ["Walk, brisk (5.5 km/h)", 4.3, "Cardio"],
-  ["Treadmill walk, 8% incline", 6.0, "Cardio"],
-  ["Rucking with pack", 7.0, "Cardio"],
-  ["Hiking", 6.0, "Cardio"],
-  ["Jog (8 km/h)", 8.3, "Cardio"],
-  ["Run (10 km/h)", 9.8, "Cardio"],
-  ["Run, fast (12 km/h)", 11.8, "Cardio"],
-  ["Cycling, easy (16 km/h)", 6.0, "Cardio"],
-  ["Cycling, moderate (20 km/h)", 8.0, "Cardio"],
-  ["Cycling, hard (25 km/h)", 10.0, "Cardio"],
-  ["Spin class", 8.5, "Cardio"],
-  ["Rowing erg, steady", 7.0, "Cardio"],
-  ["Swimming, freestyle steady", 8.3, "Cardio"],
-  ["Swimming, hard", 10.0, "Cardio"],
-  ["Elliptical, steady", 5.0, "Cardio"],
-  ["Stair climber", 9.0, "Cardio"],
-
-  ["Basketball", 6.5, "Sport"],
-  ["Football / soccer", 7.0, "Sport"],
-  ["Tennis, singles", 7.3, "Sport"],
-  ["Tennis, doubles", 6.0, "Sport"],
-  ["Squash", 9.0, "Sport"],
-  ["Padel", 7.0, "Sport"],
-  ["Martial arts / BJJ", 10.0, "Sport"],
-  ["Golf, walking", 4.8, "Sport"],
-  ["Surfing", 3.0, "Sport"],
-  ["Yoga", 3.0, "Sport"],
-  ["Pilates", 3.0, "Sport"],
-  ["Stretching / mobility", 2.3, "Sport"],
-
-  ["Steps", null, "Daily", 0.45, "× 1,000 steps"],
-  ["Walking the dog", 3.0, "Daily"],
-  ["Housework", 3.3, "Daily"],
-  ["Gardening / yard work", 4.0, "Daily"],
-  ["Manual labour", 5.5, "Daily"],
-  ["Carrying shopping / moving boxes", 5.0, "Daily"],
-];
-const EX = EXERCISES.map((e,i)=>({id:"E"+i, name:e[0], met:e[1], grp:e[2], perKg:e[3]||null, unit:e[4]||"min"}));
-const EX_GROUPS = ["Lifting","HIIT & circuit","Cardio","Sport","Daily"];
-const INTENSITIES = [["Easy — could hold a conversation",3],["Moderate — breathing harder",5],["Vigorous — hard to talk",7],["All out — intervals, gasping",10]];
 
 // Two distinct failure modes, and the second is the nasty one:
 //  1. writes throw outright (private mode, storage disabled)
@@ -1279,7 +1168,7 @@ const DOW=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"], MON=["Jan","Feb","Mar","A
 /* ---------------- maths ---------------- */
 function isDrinking(k){ return (S.dayType||{})[k] === "drinking"; }
 
-function targets(burned, k){
+function targets(k){
   const p = S.profile;
   const drinking = isDrinking(k);
   const bmr = 10*p.weight + 6.25*p.height - 5*p.age + (p.sex==="male" ? 5 : -161);
@@ -1303,17 +1192,11 @@ function targets(burned, k){
   // reserve stays inside base: the day's calorie ceiling does not move, only
   // how the macros under it are apportioned.
   const base = Math.round((prot*4 + fat*9 + carb*4 + reserve)/5)*5;
-  // Earned-back energy only lifts the target when the profile says training is
-  // NOT already priced into the activity multiplier. It all goes to carbs —
-  // protein and fat requirements do not move with a session.
-  const extra = (p.addBurn && burned>0) ? Math.round(burned) : 0;
-  carb += Math.round(extra/4);
-  // WHO caps free sugars at 10% of energy, so the reference line moves with the
-  // calorie target. Earned-back calories do not raise it — training does not
-  // buy you more sugar.
+  // WHO caps free sugars at 10% of energy, so the reference line moves with
+  // the calorie target.
   const sugar = Math.round(base * 0.10 / 4);
-  return { bmr:Math.round(bmr), tdee:Math.round(tdee), kcal:base+extra, base, extra,
-           prot, carb, fat, sugar, fibre:Math.round((base+extra)/1000*14),
+  return { bmr:Math.round(bmr), tdee:Math.round(tdee), kcal:base, base,
+           prot, carb, fat, sugar, fibre:Math.round(base/1000*14),
            drinking, reserve };
 }
 function totals(k){
@@ -1322,26 +1205,19 @@ function totals(k){
   return list.reduce((a,e)=>({kcal:a.kcal+e.kcal, p:a.p+e.p, c:a.c+e.c, f:a.f+e.f, s:a.s+(e.s||0)}),
                      {kcal:0,p:0,c:0,f:0,s:0});
 }
-function exTotal(k){ return (S.ex[k]||[]).reduce((a,e)=>a+e.kcal, 0); }
-function exKcal(x, amount){
-  return x.met ? x.met*3.5*S.profile.weight/200*amount : amount*x.perKg*S.profile.weight;
-}
 const r0 = n => Math.round(n);
 const r1 = n => Math.round(n*10)/10;
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
 /* ---------------- render ---------------- */
 function render(){
-  const burned = exTotal(day);
-  const T = targets(burned, day), t = totals(day);
+  const T = targets(day), t = totals(day);
   renderProfileLine(T);
   renderDate();
   renderDayType(T);
-  renderHeadline(T,t,burned);
+  renderHeadline(T,t);
   renderGauges(T,t);
   renderLog(t);
-  renderExercise(T,burned);
-  renderExRecent();
   renderWeek();
   renderReadout(T);
   renderRecent();
@@ -1350,7 +1226,6 @@ function render(){
 function renderProfileLine(T){
   const p = S.profile;
   const goalTxt = p.goal<0 ? (Math.abs(p.goal)+"% deficit") : p.goal>0 ? ("+"+p.goal+"% surplus") : "maintenance";
-  // the baseline plan, not today's earned-back total
   $("profileLine").textContent = `${p.weight} kg · ${p.height} cm · ${p.age} yrs · ${T.base} kcal ${goalTxt}`
     + (p.configured ? "" : "  · placeholder");
 }
@@ -1371,22 +1246,21 @@ function renderDayType(T){
     : "";
 }
 
-function renderHeadline(T,t,burned){
+function renderHeadline(T,t){
   const left = T.kcal - t.kcal;
   const el = $("headline");
-  const earned = T.extra > 0 ? ` Includes +${T.extra} earned from training.` : "";
   let state = "under", lab = "Calories remaining", big, cap;
   if(left < 0){
     state="over"; lab="Over target";
     big = "+" + r0(-left);
-    cap = `${r0(t.kcal)} eaten against a ${T.kcal} kcal target.` + earned;
+    cap = `${r0(t.kcal)} eaten against a ${T.kcal} kcal target.`;
   } else if(left <= T.kcal*0.06){
     state="close"; lab="Calories remaining";
     big = r0(left);
-    cap = `On target — ${r0(t.kcal)} of ${T.kcal} kcal logged.` + earned;
+    cap = `On target — ${r0(t.kcal)} of ${T.kcal} kcal logged.`;
   } else {
     big = r0(left);
-    cap = `${r0(t.kcal)} of ${T.kcal} kcal logged.` + earned;
+    cap = `${r0(t.kcal)} of ${T.kcal} kcal logged.`;
   }
   el.dataset.state = state;
   $("headLab").textContent = lab;
@@ -1460,106 +1334,12 @@ function renderLog(t){
     It counts against your calories but does nothing for training.</div>`;
 }
 
-/* ---------------- training ---------------- */
-function allEx(){ return (S.customEx||[]).concat(EX); }
-let exGroup = "Lifting";
-
-function renderExGroups(){
-  $("exGroups").innerHTML = EX_GROUPS.map(g=>
-    `<button class="chip" data-g="${esc(g)}" aria-pressed="${g===exGroup}">${esc(g)}</button>`).join("")
-    + ((S.customEx||[]).length ? `<button class="chip" data-g="Mine" aria-pressed="${exGroup==="Mine"}">My exercises</button>` : "");
-  $("exGroups").querySelectorAll(".chip").forEach(b=>b.onclick=()=>{
-    exGroup = b.dataset.g; renderExGroups(); renderExResults();
-    const on = $("exGroups").querySelector('.chip[aria-pressed="true"]');
-    if(on) on.scrollIntoView({block:"nearest", inline:"center"});
-  });
-}
-
-function renderExResults(){
-  const list = exGroup==="Mine" ? (S.customEx||[]) : allEx().filter(x=>x.grp===exGroup);
-  $("exResults").innerHTML = list.map(x=>{
-    const per = x.met ? `${r0(exKcal(x,30))} kcal / 30 min` : `${r0(exKcal(x,1))} kcal / 1,000 steps`;
-    return `<button data-id="${x.id}"><span class="grow"><span class="nm">${esc(x.name)}</span></span>
-      <span class="k">${per}</span></button>`;
-  }).join("") || `<div class="none">Nothing saved here yet.</div>`;
-  $("exResults").querySelectorAll("button[data-id]").forEach(b=>b.onclick=()=>pickEx(b.dataset.id));
-}
-
-function pickEx(id){
-  const x = allEx().find(e=>e.id===id); if(!x) return;
-  const box = $("exPicked");
-  const steps = !x.met;
-  box.classList.remove("hidden");
-  box.innerHTML = `
-    <div class="row between"><b style="font-size:14.5px">${esc(x.name)}</b>
-      <button class="btn ghost sm" id="xCancel">Cancel</button></div>
-    <label class="field"><span class="lab">${steps ? "Thousands of steps" : "Minutes"}</span>
-      <input id="xQty" type="number" inputmode="decimal" step="any" value="${steps ? 8 : 45}"></label>
-    <div class="row between"><span class="lab">Estimated burn</span>
-      <b class="num" id="xPrev" style="font-size:18px">0 kcal</b></div>
-    <button class="btn primary" id="xPick">Add to training log</button>`;
-  const q = $("xQty");
-  const upd = ()=>{ $("xPrev").textContent = r0(exKcal(x, parseFloat(q.value)||0)) + " kcal"; };
-  q.oninput = upd; upd(); q.select();
-  $("xCancel").onclick = ()=>box.classList.add("hidden");
-  $("xPick").onclick = ()=>{
-    const n = parseFloat(q.value)||0; if(n<=0) return;
-    addEx({ name:x.name, detail: steps ? `${r1(n)} × 1,000 steps` : `${r0(n)} min · ${x.met} MET`,
-            kcal: exKcal(x,n) });
-    box.classList.add("hidden");
-  };
-}
-
-function addEx(e){
-  e.kcal = Math.round(+e.kcal||0);
-  (S.ex[day] = S.ex[day] || []).push(e);
-  S.recentEx = [{name:e.name, detail:e.detail, kcal:e.kcal}]
-    .concat((S.recentEx||[]).filter(r=>!(r.name===e.name && r.detail===e.detail))).slice(0,8);
-  save(); render();
-}
-
-function renderExRecent(){
-  const items = (S.recentEx||[]).slice(0,5);
-  $("exRecentWrap").classList.toggle("hidden", items.length===0);
-  $("exRecent").innerHTML = items.map((r,i)=>
-    `<button class="chip" data-i="${i}">${esc(r.name)} · ${r0(r.kcal)}</button>`).join("");
-  $("exRecent").querySelectorAll(".chip").forEach(b=>b.onclick=()=>{
-    const r = S.recentEx[+b.dataset.i];
-    addEx({name:r.name, detail:r.detail, kcal:r.kcal});
-  });
-}
-
-function renderExercise(T,burned){
-  const list = S.ex[day]||[];
-  $("exSub").textContent = burned ? `${r0(burned)} kcal · ${list.length} entr${list.length>1?"ies":"y"}` : "";
-  $("exLog").innerHTML = !list.length
-    ? `<div class="empty">No training logged for this day.</div>`
-    : list.map((e,i)=>`
-      <div class="entry">
-        <div class="grow"><div class="nm">${esc(e.name)}</div>
-          <div class="qt">${esc(e.detail||"")}</div></div>
-        <div class="mac"><b>${r0(e.kcal)}</b>kcal burnt</div>
-        <button class="del" data-i="${i}" aria-label="Remove ${esc(e.name)}">×</button>
-      </div>`).join("");
-  $("exLog").querySelectorAll(".del").forEach(b=>b.onclick=()=>{
-    S.ex[day].splice(+b.dataset.i,1);
-    if(!S.ex[day].length) delete S.ex[day];
-    save(); render();
-  });
-
-  const off = $("exOffset");
-  if(!burned){ off.innerHTML = ""; return; }
-  off.innerHTML = S.profile.addBurn
-    ? `<div class="note" style="margin-top:10px"><b>+${r0(burned)} kcal added to today's target</b>, all of it into carbs — protein and fat needs do not move with a session. Your target is ${T.base} + ${T.extra} = <b>${T.kcal} kcal</b>.</div>`
-    : `<div class="note warnish" style="margin-top:10px"><b>Logged, but not added to your target.</b> Your activity multiplier already prices in your usual training, so counting it again would double it. If you would rather earn calories back session by session, turn that on in <b>Body, activity &amp; targets</b> and drop the multiplier to the desk-job setting.</div>`;
-}
-
 /* ---------------- week ---------------- */
 function renderWeek(){
   const cells = [];
   for(let i=6;i>=0;i--){
     const k = shiftDay(day,-i), d = keyToDate(k), tt = totals(k);
-    const T = targets(exTotal(k), k);
+    const T = targets(k);
     const ratio = tt.kcal / T.kcal;
     const max = Math.max(1.35, ratio);
     const h = Math.min(100, (ratio/max)*100);
@@ -1723,38 +1503,6 @@ $("cAdd").onclick = ()=>{
   switchTab(true);
 };
 
-$("tabExLib").onclick = ()=>switchExTab(true);
-$("tabExCustom").onclick = ()=>switchExTab(false);
-function switchExTab(lib){
-  $("tabExLib").setAttribute("aria-selected", lib);
-  $("tabExCustom").setAttribute("aria-selected", !lib);
-  $("paneExLib").classList.toggle("hidden", !lib);
-  $("paneExCustom").classList.toggle("hidden", lib);
-}
-
-$("xMet").innerHTML = INTENSITIES.map(([l,m],i)=>
-  `<option value="${m}"${i===2?" selected":""}>${l}</option>`).join("");
-
-$("xAdd").onclick = ()=>{
-  const name = $("xName").value.trim() || "Training session";
-  const mins = +$("xMins").value||0;
-  const met  = +$("xMet").value||7;
-  const direct = $("xKcal").value === "" ? null : (+$("xKcal").value||0);
-  if(!mins && direct===null) return;
-  const kcal = direct !== null ? direct : met*3.5*S.profile.weight/200*mins;
-  const detail = direct !== null
-    ? (mins ? `${mins} min · entered directly` : "entered directly")
-    : `${mins} min · ${met} MET`;
-  if($("xSave").checked){
-    S.customEx.unshift({ id:"X"+Date.now(), name, met: direct!==null && mins ? +(direct/(3.5*S.profile.weight/200*mins)).toFixed(1) : met, grp:"Mine", perKg:null, unit:"min" });
-  }
-  addEx({name, detail, kcal});
-  ["xName","xMins","xKcal"].forEach(i=>$(i).value="");
-  $("xSave").checked = false;
-  renderExGroups();
-  switchExTab(true);
-};
-
 // profile inputs
 const P_FIELDS = {pWeight:"weight", pHeight:"height", pAge:"age", pSex:"sex", pAct:"act", pGoal:"goal",
                   pProt:"prot", pFat:"fat", pDrinkKcal:"drinkKcal", pDrinkFat:"drinkFat"};
@@ -1769,7 +1517,7 @@ function syncProfileInputs(){
   const p = S.profile;
   $("pWeight").value=p.weight; $("pHeight").value=p.height; $("pAge").value=p.age;
   $("pSex").value=p.sex; $("pAct").value=p.act.toFixed(2); $("pGoal").value=String(p.goal);
-  $("pProt").value=p.prot; $("pFat").value=p.fat; $("pAddBurn").checked=!!p.addBurn;
+  $("pProt").value=p.prot; $("pFat").value=p.fat;
   $("pDrinkKcal").value=p.drinkKcal; $("pDrinkFat").value=p.drinkFat;
   renderBurnModeNote(); renderDrinkModeNote();
 }
@@ -1778,16 +1526,6 @@ function renderDrinkModeNote(){
   const fatG = Math.round(p.drinkFat * p.weight), dryFatG = Math.round(p.fat * p.weight);
   $("drinkModeNote").innerHTML = `Mark a day <b>Drinking</b> and ${Math.round(p.drinkKcal)} kcal are held back before carbohydrate takes the remainder, with fat dropping from ${dryFatG} g to ${fatG} g. Alcohol is neither protein, carbohydrate nor fat, so its calories come out of no macro — leave them in and the carb target keeps its old figure while quietly becoming unreachable. <b>Log the drink as an entry as normal</b>; this reserves the room, it does not record it.`;
 }
-function renderBurnModeNote(){
-  const p = S.profile;
-  $("burnModeNote").innerHTML = p.addBurn
-    ? `Each logged session raises that day's target by what it burnt. Only correct if your multiplier <b>excludes</b> training — set it to the desk-job option (1.30), or you will count the same sessions twice.`
-    : `Off is right for most people: the multiplier you picked already averages your training across the week, so sessions are baked in. Logged training still shows here — it just does not move the target.`;
-}
-$("pAddBurn").addEventListener("change", ()=>{
-  S.profile.addBurn = $("pAddBurn").checked;
-  save(); renderBurnModeNote(); render();
-});
 $("dtDry").onclick   = ()=>setDayType("dry");
 $("dtDrink").onclick = ()=>setDayType("drinking");
 Object.keys(P_FIELDS).forEach(id=>{
@@ -1867,13 +1605,13 @@ $("importBtn").onclick = ()=>{
     if(!p || typeof p!=="object" || !("profile" in p)) throw new Error("not a ledger file");
     S = Object.assign(structuredClone(DEFAULT_STATE), p,
       {profile:Object.assign({}, DEFAULT_STATE.profile, p.profile||{})});
-    save(); syncProfileInputs(); applyTheme(); renderExGroups(); renderExResults(); render();
+    save(); syncProfileInputs(); applyTheme(); render();
     $("importMsg").textContent = "Loaded.";
   }catch(e){ $("importMsg").textContent = "Couldn't read that — needs the full backup text."; }
 };
 $("resetBtn").onclick = ()=>{
   if(!confirm("Delete every logged day and reset your profile? This can't be undone.")) return;
-  S = structuredClone(DEFAULT_STATE); save(); syncProfileInputs(); applyTheme(); renderExGroups(); renderExResults(); render();
+  S = structuredClone(DEFAULT_STATE); save(); syncProfileInputs(); applyTheme(); render();
 };
 
 if(!S.profile.configured){
@@ -1888,12 +1626,8 @@ $("noStoreBody").innerHTML = STORE.ok
 applyTheme();
 syncProfileInputs();
 switchTab(true);
-switchExTab(true);
 renderCuisines();
 renderResults("");
-renderExGroups();
-renderExResults();
-renderExRecent();
 renderStorageStatus();
 render();
 </script>
