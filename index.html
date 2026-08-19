@@ -284,6 +284,12 @@ details[open] summary{border-bottom:1px solid var(--rule-2)}
     <button class="nav" id="nextDay" aria-label="Next day">›</button>
   </div>
 
+  <div class="chips" id="dayTypeBar" role="group" aria-label="Day type">
+    <button class="chip" id="dtDry" aria-pressed="true">Dry</button>
+    <button class="chip" id="dtDrink" aria-pressed="false">Drinking</button>
+    <span class="lab" id="dtNote"></span>
+  </div>
+
   <section class="card headline" id="headline">
     <div class="lab" id="headLab">Calories remaining</div>
     <div class="big" id="headBig">0</div>
@@ -410,6 +416,11 @@ details[open] summary{border-bottom:1px solid var(--rule-2)}
         <label class="field"><span class="lab">Protein g/kg</span><input id="pProt" type="number" inputmode="decimal" step="0.1"></label>
         <label class="field"><span class="lab">Fat g/kg</span><input id="pFat" type="number" inputmode="decimal" step="0.1"></label>
       </div>
+      <div class="grid2">
+        <label class="field"><span class="lab">Drink allowance (kcal)</span><input id="pDrinkKcal" type="number" inputmode="numeric" step="10"></label>
+        <label class="field"><span class="lab">Fat g/kg, drinking days</span><input id="pDrinkFat" type="number" inputmode="decimal" step="0.01"></label>
+      </div>
+      <div class="note" id="drinkModeNote"></div>
       <div style="display:flex;flex-direction:column;gap:7px">
         <label class="row" style="gap:8px;font-size:13.5px;font-weight:600">
           <input type="checkbox" id="pAddBurn" style="width:auto"> Add logged training to my daily target</label>
@@ -452,9 +463,15 @@ const $ = id => document.getElementById(id);
 const DEFAULT_STATE = {
   // Neutral placeholders on purpose — no real person's measurements ship in the
   // source. The first profile edit sets configured and these stop being used.
-  profile:{ sex:"male", age:30, weight:75, height:175, act:1.40, goal:-20, prot:2.0, fat:0.8, addBurn:false, configured:false },
+  profile:{ sex:"male", age:30, weight:75, height:175, act:1.40, goal:-20, prot:2.0, fat:0.8, addBurn:false, configured:false,
+            // Drinking-day allowance. Neutral placeholders like the rest of the
+            // profile — the point is the mechanism, not anyone's actual pour.
+            drinkKcal:200, drinkFat:0.65 },
   custom:[], log:{}, recent:[], theme:null,
-  customEx:[], ex:{}, recentEx:[]
+  customEx:[], ex:{}, recentEx:[],
+  // dayType[dateKey] === "drinking"; absent means dry. Only two types, so the
+  // dry case stays unwritten and old data needs no migration.
+  dayType:{}
 };
 
 // name, unit, basis (amount the macros describe), kcal, protein, carbs, fat, sugar, cuisine
@@ -1291,17 +1308,32 @@ function shiftDay(k,n){ const d=keyToDate(k); d.setDate(d.getDate()+n); return t
 const DOW=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"], MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 /* ---------------- maths ---------------- */
-function targets(burned){
+function isDrinking(k){ return (S.dayType||{})[k] === "drinking"; }
+
+function targets(burned, k){
   const p = S.profile;
+  const drinking = isDrinking(k);
   const bmr = 10*p.weight + 6.25*p.height - 5*p.age + (p.sex==="male" ? 5 : -161);
   const tdee = bmr * p.act;
   let kcal = tdee * (1 + p.goal/100);
   const prot = Math.round(p.prot * p.weight);
-  const fat  = Math.round(p.fat  * p.weight);
+  // Fat is the only macro worth moving for a drink: protein is load-bearing and
+  // carbohydrate is what fuels the session.
+  const fat  = Math.round((drinking ? p.drinkFat : p.fat) * p.weight);
   const floor = prot*4 + fat*9 + 40;
   kcal = Math.max(kcal, floor);
-  let carb = Math.max(0, Math.round((kcal - prot*4 - fat*9)/4));
-  const base = Math.round((prot*4 + fat*9 + carb*4)/5)*5;
+  // Alcohol is 7.1 kcal/g and is neither protein, carbohydrate nor fat, so its
+  // calories belong to no macro. Held back before carbohydrate takes the
+  // remainder, they simply shrink it; left in, the carb target keeps its old
+  // value and quietly becomes unreachable. The drink is still logged as an
+  // entry — this reserves the room, it does not record the drink.
+  const reserve = drinking
+    ? Math.min(Math.max(0, Math.round(p.drinkKcal)), Math.max(0, kcal - prot*4 - fat*9))
+    : 0;
+  let carb = Math.max(0, Math.round((kcal - reserve - prot*4 - fat*9)/4));
+  // reserve stays inside base: the day's calorie ceiling does not move, only
+  // how the macros under it are apportioned.
+  const base = Math.round((prot*4 + fat*9 + carb*4 + reserve)/5)*5;
   // Earned-back energy only lifts the target when the profile says training is
   // NOT already priced into the activity multiplier. It all goes to carbs —
   // protein and fat requirements do not move with a session.
@@ -1312,7 +1344,8 @@ function targets(burned){
   // buy you more sugar.
   const sugar = Math.round(base * 0.10 / 4);
   return { bmr:Math.round(bmr), tdee:Math.round(tdee), kcal:base+extra, base, extra,
-           prot, carb, fat, sugar, fibre:Math.round((base+extra)/1000*14) };
+           prot, carb, fat, sugar, fibre:Math.round((base+extra)/1000*14),
+           drinking, reserve };
 }
 function totals(k){
   const list = S.log[k]||[];
@@ -1331,9 +1364,10 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":
 /* ---------------- render ---------------- */
 function render(){
   const burned = exTotal(day);
-  const T = targets(burned), t = totals(day);
+  const T = targets(burned, day), t = totals(day);
   renderProfileLine(T);
   renderDate();
+  renderDayType(T);
   renderHeadline(T,t,burned);
   renderGauges(T,t);
   renderLog(t);
@@ -1357,6 +1391,15 @@ function renderDate(){
   $("dateLabel").innerHTML = `<small>${isToday?"Today":DOW[d.getDay()]}</small>${DOW[d.getDay()]} ${d.getDate()} ${MON[d.getMonth()]}`;
   $("nextDay").disabled = day >= todayKey();
   $("nextDay").style.opacity = day >= todayKey() ? .35 : 1;
+}
+
+function renderDayType(T){
+  const on = T.drinking;
+  $("dtDry").setAttribute("aria-pressed", String(!on));
+  $("dtDrink").setAttribute("aria-pressed", String(on));
+  $("dtNote").textContent = on
+    ? `${T.reserve} kcal held back · fat ${T.fat} g · carbs ${T.carb} g`
+    : "";
 }
 
 function renderHeadline(T,t,burned){
@@ -1547,7 +1590,7 @@ function renderWeek(){
   const cells = [];
   for(let i=6;i>=0;i--){
     const k = shiftDay(day,-i), d = keyToDate(k), tt = totals(k);
-    const T = targets(exTotal(k));
+    const T = targets(exTotal(k), k);
     const ratio = tt.kcal / T.kcal;
     const max = Math.max(1.35, ratio);
     const h = Math.min(100, (ratio/max)*100);
@@ -1744,13 +1787,27 @@ $("xAdd").onclick = ()=>{
 };
 
 // profile inputs
-const P_FIELDS = {pWeight:"weight", pHeight:"height", pAge:"age", pSex:"sex", pAct:"act", pGoal:"goal", pProt:"prot", pFat:"fat"};
+const P_FIELDS = {pWeight:"weight", pHeight:"height", pAge:"age", pSex:"sex", pAct:"act", pGoal:"goal",
+                  pProt:"prot", pFat:"fat", pDrinkKcal:"drinkKcal", pDrinkFat:"drinkFat"};
+
+function setDayType(kind){
+  S.dayType = S.dayType || {};
+  if(kind === "drinking") S.dayType[day] = "drinking";
+  else delete S.dayType[day];   // dry is the absence of a mark, not a value
+  save(); render();
+}
 function syncProfileInputs(){
   const p = S.profile;
   $("pWeight").value=p.weight; $("pHeight").value=p.height; $("pAge").value=p.age;
   $("pSex").value=p.sex; $("pAct").value=p.act.toFixed(2); $("pGoal").value=String(p.goal);
   $("pProt").value=p.prot; $("pFat").value=p.fat; $("pAddBurn").checked=!!p.addBurn;
-  renderBurnModeNote();
+  $("pDrinkKcal").value=p.drinkKcal; $("pDrinkFat").value=p.drinkFat;
+  renderBurnModeNote(); renderDrinkModeNote();
+}
+function renderDrinkModeNote(){
+  const p = S.profile;
+  const fatG = Math.round(p.drinkFat * p.weight), dryFatG = Math.round(p.fat * p.weight);
+  $("drinkModeNote").innerHTML = `Mark a day <b>Drinking</b> and ${Math.round(p.drinkKcal)} kcal are held back before carbohydrate takes the remainder, with fat dropping from ${dryFatG} g to ${fatG} g. Alcohol is neither protein, carbohydrate nor fat, so its calories come out of no macro — leave them in and the carb target keeps its old figure while quietly becoming unreachable. <b>Log the drink as an entry as normal</b>; this reserves the room, it does not record it.`;
 }
 function renderBurnModeNote(){
   const p = S.profile;
@@ -1762,12 +1819,15 @@ $("pAddBurn").addEventListener("change", ()=>{
   S.profile.addBurn = $("pAddBurn").checked;
   save(); renderBurnModeNote(); render();
 });
+$("dtDry").onclick   = ()=>setDayType("dry");
+$("dtDrink").onclick = ()=>setDayType("drinking");
 Object.keys(P_FIELDS).forEach(id=>{
   $(id).addEventListener("change", ()=>{
     const key = P_FIELDS[id], v = $(id).value;
     S.profile[key] = (key==="sex") ? v : (parseFloat(v)||S.profile[key]);
     S.profile.configured = true;          // placeholders are done with
     $("setupPrompt").classList.add("hidden");
+    renderDrinkModeNote();
     save(); render();
   });
 });

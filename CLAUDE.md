@@ -57,13 +57,17 @@ script:
   `1` with unit `"ea"` for a whole serve. `LIB` maps these to objects.
 - `EXERCISES` — 56 rows, `[name, MET, group]`. A null MET means the item is
   counted per unit (steps) rather than per minute.
-- `targets(burned)` — Mifflin-St Jeor BMR × activity, adjusted for goal.
+- `targets(burned, dayKey)` — Mifflin-St Jeor BMR × activity, adjusted for goal.
   Protein and fat are set per kg bodyweight; carbs take the remainder; the
-  sugar cap is 10% of calories.
+  sugar cap is 10% of calories. If `dayKey` is marked drinking, fat switches to
+  `profile.drinkFat` and `profile.drinkKcal` is reserved before carbs take what
+  is left — the calorie ceiling does not move, only the split beneath it.
 - `render()` — the single entry point. Every state change calls `save()` then
   `render()`. There is no framework and no virtual DOM; render functions
   rewrite their own `innerHTML`.
 - State lives in `S`, persisted to `localStorage` under `macroLedger.v1`.
+- `dayType[dateKey]` — `"drinking"`, or absent for dry. Dry is the absence of a
+  mark rather than a stored value, so existing data needs no migration.
 
 ## Conventions that matter
 
@@ -82,6 +86,12 @@ script:
   quietly present a derived number as sourced.
 - **Sugar never exceeds carbohydrate.** Enforced in `addEntry` and in the
   manual-entry form. Preserve that invariant.
+- **Alcohol is reserved, not logged, by the day-type toggle.** Ethanol is
+  7.1 kcal/g and is no macro at all, so its calories belong to none of the three
+  bars. The drinking preset holds them back before carbs take the remainder; the
+  drink itself is still logged as an ordinary entry. Reserving *and* omitting the
+  entry would understate the day; logging without reserving leaves a carb target
+  that cannot be reached.
 
 ## Testing
 
