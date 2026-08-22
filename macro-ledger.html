@@ -351,6 +351,27 @@ details[open] summary{border-bottom:1px solid var(--rule-2)}
         <label class="field"><span class="lab">Fat g/kg, drinking days</span><input id="pDrinkFat" type="number" inputmode="decimal" step="0.01"></label>
       </div>
       <div class="note" id="drinkModeNote"></div>
+
+      <div style="display:flex;flex-direction:column;gap:9px;border-top:1px solid var(--rule-2);padding-top:12px">
+        <label class="row" style="gap:8px;font-size:13.5px;font-weight:600">
+          <input type="checkbox" id="pPregnant" style="width:auto"> Pregnant</label>
+        <div id="pregFields" class="hidden" style="display:flex;flex-direction:column;gap:9px">
+          <label class="field"><span class="lab">Trimester</span>
+            <select id="pTrimester">
+              <option value="1">First — weeks 1–13</option>
+              <option value="2">Second — weeks 14–27</option>
+              <option value="3">Third — week 28 onward</option>
+            </select></label>
+          <div class="grid2">
+            <label class="field"><span class="lab">Extra kcal/day</span>
+              <input id="pPregKcal" type="number" inputmode="numeric" step="5"></label>
+            <label class="field"><span class="lab">Extra protein g/day</span>
+              <input id="pPregProt" type="number" inputmode="decimal" step="1"></label>
+          </div>
+          <div class="note" id="pregNote"></div>
+        </div>
+      </div>
+
       <div class="readout" id="readout"></div>
       <div class="note" id="mathNote"></div>
       <div class="note warnish"><b>About the sugar figure.</b> It counts <b>total</b> sugars — the sugar in fruit and milk as well as anything added. The 10%-of-calories cap it is measured against comes from the WHO guideline on <b>added</b> sugars, so fruit and milk push you toward a line they were never meant to count against. Read a day of whole fruit and yoghurt differently from the same number reached through soft drink. Whole foods use published composition data; restaurant dishes are estimated from what carries the sugar in them, because no chain publishes it.</div>
@@ -389,6 +410,7 @@ const DEFAULT_STATE = {
   // Neutral placeholders on purpose — no real person's measurements ship in the
   // source. The first profile edit sets configured and these stop being used.
   profile:{ sex:"male", age:30, weight:75, height:175, act:1.40, goal:-20, prot:2.0, fat:0.8, configured:false,
+            pregnant:false, trimester:1, pregKcal:85, pregProt:1,
             // Drinking-day allowance. Neutral placeholders like the rest of the
             // profile — the point is the mechanism, not anyone's actual pour.
             drinkKcal:200, drinkFat:0.65 },
@@ -1109,6 +1131,14 @@ const FOODS = [
   ["Green peas","g",100,81,5.4,14,0.4,5.7,"Fruit & veg"],
 ];
 const LIB = FOODS.map((f,i)=>({id:"L"+i, name:f[0], unit:f[1], basis:f[2], kcal:f[3], p:f[4], c:f[5], f:f[6], s:f[7], cui:f[8]}));
+// Additional daily energy and protein in pregnancy, by trimester.
+// Energy: FAO/WHO/UNU 2004 (+85 / +285 / +475 kcal/day, 77,000 kcal total).
+// Protein: the same report's increments (+0.7 / +9.6 / +31.2 g/day).
+// Authorities genuinely disagree — the US (IOM/ACOG) uses +0 / +340 / +452,
+// and the UK (SACN) recommends only +200 and only in the third trimester —
+// so both fields stay editable and a clinician's figure should win.
+const PREGNANCY = { 1:{kcal:85, prot:1}, 2:{kcal:285, prot:10}, 3:{kcal:475, prot:31} };
+
 const CUISINES = ["Malaysian","Chinese","Japanese","Korean","Thai","Vietnamese","Indian","SE Asian","Filipino","Middle East","Italian & Med","Mexican","Western",
                   "Franchise","Fast food","Juice bar","Coffee & tea","Dessert","Snacks","Drinks",
                   "Protein","Staple","Extras","Fruit & veg"];
@@ -1173,8 +1203,12 @@ function targets(k){
   const drinking = isDrinking(k);
   const bmr = 10*p.weight + 6.25*p.height - 5*p.age + (p.sex==="male" ? 5 : -161);
   const tdee = bmr * p.act;
-  let kcal = tdee * (1 + p.goal/100);
-  const prot = Math.round(p.prot * p.weight);
+  // A deficit is not an appropriate default in pregnancy, so the goal is
+  // clamped at maintenance. Deliberate restriction is a clinical decision and
+  // belongs with a doctor or midwife, not a preset in a tracker.
+  const goal = p.pregnant ? Math.max(0, p.goal) : p.goal;
+  let kcal = tdee * (1 + goal/100) + (p.pregnant ? Math.max(0, Math.round(p.pregKcal)) : 0);
+  const prot = Math.round(p.prot * p.weight) + (p.pregnant ? Math.max(0, Math.round(p.pregProt)) : 0);
   // Fat is the only macro worth moving for a drink: protein is load-bearing and
   // carbohydrate is what fuels the session.
   const fat  = Math.round((drinking ? p.drinkFat : p.fat) * p.weight);
@@ -1197,7 +1231,9 @@ function targets(k){
   const sugar = Math.round(base * 0.10 / 4);
   return { bmr:Math.round(bmr), tdee:Math.round(tdee), kcal:base, base,
            prot, carb, fat, sugar, fibre:Math.round(base/1000*14),
-           drinking, reserve };
+           drinking, reserve,
+           pregnant:!!p.pregnant, pregKcal:p.pregnant?Math.max(0,Math.round(p.pregKcal)):0,
+           pregProt:p.pregnant?Math.max(0,Math.round(p.pregProt)):0 };
 }
 function totals(k){
   const list = S.log[k]||[];
@@ -1505,7 +1541,8 @@ $("cAdd").onclick = ()=>{
 
 // profile inputs
 const P_FIELDS = {pWeight:"weight", pHeight:"height", pAge:"age", pSex:"sex", pAct:"act", pGoal:"goal",
-                  pProt:"prot", pFat:"fat", pDrinkKcal:"drinkKcal", pDrinkFat:"drinkFat"};
+                  pProt:"prot", pFat:"fat", pDrinkKcal:"drinkKcal", pDrinkFat:"drinkFat",
+                  pTrimester:"trimester", pPregKcal:"pregKcal", pPregProt:"pregProt"};
 
 function setDayType(kind){
   S.dayType = S.dayType || {};
@@ -1518,14 +1555,43 @@ function syncProfileInputs(){
   $("pWeight").value=p.weight; $("pHeight").value=p.height; $("pAge").value=p.age;
   $("pSex").value=p.sex; $("pAct").value=p.act.toFixed(2); $("pGoal").value=String(p.goal);
   $("pProt").value=p.prot; $("pFat").value=p.fat;
+  $("pPregnant").checked=!!p.pregnant; $("pTrimester").value=String(p.trimester||1);
+  $("pPregKcal").value=p.pregKcal; $("pPregProt").value=p.pregProt;
   $("pDrinkKcal").value=p.drinkKcal; $("pDrinkFat").value=p.drinkFat;
-  renderBurnModeNote(); renderDrinkModeNote();
+  renderDrinkModeNote(); renderPregNote();
 }
 function renderDrinkModeNote(){
   const p = S.profile;
   const fatG = Math.round(p.drinkFat * p.weight), dryFatG = Math.round(p.fat * p.weight);
   $("drinkModeNote").innerHTML = `Mark a day <b>Drinking</b> and ${Math.round(p.drinkKcal)} kcal are held back before carbohydrate takes the remainder, with fat dropping from ${dryFatG} g to ${fatG} g. Alcohol is neither protein, carbohydrate nor fat, so its calories come out of no macro — leave them in and the carb target keeps its old figure while quietly becoming unreachable. <b>Log the drink as an entry as normal</b>; this reserves the room, it does not record it.`;
 }
+function renderPregNote(){
+  const p = S.profile;
+  $("pregFields").classList.toggle("hidden", !p.pregnant);
+  if(!p.pregnant) return;
+  const t = PREGNANCY[p.trimester] || PREGNANCY[1];
+  const clamped = p.goal < 0;
+  $("pregNote").innerHTML =
+    `Defaults follow <b>FAO/WHO/UNU</b>: +85 kcal in the first trimester, +285 in the second, +475 in the third — about 77,000 kcal over the whole pregnancy. Other authorities differ: the US uses +0 / +340 / +452, the UK only +200 and only in the third trimester. This trimester's default is <b>+${t.kcal} kcal</b> and <b>+${t.prot} g protein</b>; both fields are editable, and a figure from your doctor or midwife should replace them.`
+    + (clamped ? ` <b>Your goal has been held at maintenance</b> — losing weight during pregnancy is a decision for your clinician, not a preset.` : ``)
+    + ` This is general guidance, not medical advice, and it does not cover the things that matter most in pregnancy: folate, iron, iodine, and foods to avoid. Please go through your intake with your midwife or doctor.`;
+}
+$("pPregnant").addEventListener("change", ()=>{
+  S.profile.pregnant = $("pPregnant").checked;
+  S.profile.configured = true;
+  if(S.profile.pregnant){
+    const t = PREGNANCY[S.profile.trimester] || PREGNANCY[1];
+    S.profile.pregKcal = t.kcal; S.profile.pregProt = t.prot;
+    syncProfileInputs();
+  }
+  save(); renderPregNote(); render();
+});
+$("pTrimester").addEventListener("change", ()=>{
+  // moving trimester resets the increments to that trimester's guideline
+  const t = PREGNANCY[+$("pTrimester").value] || PREGNANCY[1];
+  S.profile.pregKcal = t.kcal; S.profile.pregProt = t.prot;
+  syncProfileInputs(); save(); renderPregNote(); render();
+});
 $("dtDry").onclick   = ()=>setDayType("dry");
 $("dtDrink").onclick = ()=>setDayType("drinking");
 Object.keys(P_FIELDS).forEach(id=>{
@@ -1535,6 +1601,7 @@ Object.keys(P_FIELDS).forEach(id=>{
     S.profile.configured = true;          // placeholders are done with
     $("setupPrompt").classList.add("hidden");
     renderDrinkModeNote();
+  renderPregNote();
     save(); render();
   });
 });

@@ -66,6 +66,10 @@ script:
 - State lives in `S`, persisted to `localStorage` under `macroLedger.v1`.
 - `dayType[dateKey]` — `"drinking"`, or absent for dry. Dry is the absence of a
   mark rather than a stored value, so existing data needs no migration.
+- `PREGNANCY` — additional kcal and protein per trimester, FAO/WHO/UNU 2004
+  (+85 / +285 / +475 kcal, +1 / +10 / +31 g protein). When `profile.pregnant`
+  is set, `targets()` adds `pregKcal` and `pregProt` and clamps the goal at
+  maintenance. Both increments are editable so a clinician's figure wins.
 
 ## Conventions that matter
 
@@ -84,6 +88,14 @@ script:
   quietly present a derived number as sourced.
 - **Sugar never exceeds carbohydrate.** Enforced in `addEntry` and in the
   manual-entry form. Preserve that invariant.
+- **No weight-loss preset while pregnant.** `targets()` clamps the goal to
+  maintenance rather than rewriting `profile.goal`, so unticking the box
+  restores whatever the user had. Restriction in pregnancy is a clinical
+  decision; the app must not offer it as a preset.
+- **Verify with `read_console_messages` on a fresh load.** A listener attached
+  from inside a test script runs after load and misses load-time errors — a
+  dangling call once shipped that broke the whole app, and an in-page listener
+  reported no errors.
 - **Alcohol is reserved, not logged, by the day-type toggle.** Ethanol is
   7.1 kcal/g and is no macro at all, so its calories belong to none of the three
   bars. The drinking preset holds them back before carbs take the remainder; the
